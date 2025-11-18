@@ -446,32 +446,50 @@
         </div>
 
         <!-- Image Preview -->
-         <div v-else-if="isImageFile(currentAttachment)" class="text-center">
-        <div v-if="previewLoading" class="flex items-center justify-center py-12">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            <span class="ml-2 text-gray-600">Loading image...</span>
-        </div>
-        <div v-else>
-            <img 
-            :src="getAttachmentUrl(currentAttachment)" 
-            :alt="getFileName(currentAttachment)"
-            class="max-w-full max-h-[70vh] mx-auto rounded-lg shadow-md"
-            @load="previewLoading = false"
-            @error="handleImageError"
-            >
-            <div class="mt-4">
-            <p class="text-sm text-gray-600 mb-2">{{ getFileName(currentAttachment) }}</p>
-            <button
-                @click="downloadAttachment(currentAttachment)"
-                class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors inline-flex items-center"
-            >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                Download Image
-            </button>
+        <div v-else-if="isImageFile(currentAttachment)" class="text-center">
+          <div v-if="previewLoading" class="flex flex-col items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+            <span class="text-gray-600">Loading image preview...</span>
+            <span class="text-gray-400 text-sm mt-1">URL: {{ getAttachmentUrl(currentAttachment) }}</span>
+          </div>
+          
+          <div v-else class="space-y-4">
+            <!-- Image container with fallback -->
+            <div class="relative bg-gray-100 rounded-lg p-4 min-h-[200px] flex items-center justify-center">
+              <img 
+                :src="getAttachmentUrl(currentAttachment)" 
+                :alt="getFileName(currentAttachment)"
+                class="max-w-full max-h-[60vh] mx-auto rounded-lg shadow-md"
+                @error="handleImageError"
+              >
             </div>
-        </div>
+            
+            <!-- Image info and actions -->
+            <div class="bg-gray-50 rounded-lg p-4">
+              <p class="text-sm font-medium text-gray-700 mb-1">File Information</p>
+              <p class="text-xs text-gray-600 mb-2">{{ getFileName(currentAttachment) }}</p>
+              <div class="flex justify-center space-x-3">
+                <button
+                  @click="downloadAttachment(currentAttachment)"
+                  class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors inline-flex items-center text-sm"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                  Download Image
+                </button>
+                <button
+                  @click="openImageInNewTab(currentAttachment)"
+                  class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors inline-flex items-center text-sm"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                  </svg>
+                  Open in New Tab
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- PDF Preview -->
@@ -690,6 +708,12 @@ const isImageFile = (filename) => {
   return getFileType(filename) === 'image'
 }
 
+const openImageInNewTab = (attachment) => {
+  const imageUrl = getAttachmentUrl(attachment);
+  window.open(imageUrl, '_blank');
+}
+
+
 const isPdfFile = (filename) => {
   return getFileType(filename) === 'pdf'
 }
@@ -698,10 +722,16 @@ const isDocumentFile = (filename) => {
   return getFileType(filename) === 'document'
 }
 const getAttachmentUrl = (attachment) => {
-  // For images, we need to use the full URL with the storage link
-  // Make sure your storage is linked: php artisan storage:link
-  const filename = getFileName(attachment)
-  return `/storage/documents/${filename}`
+  console.log('Original attachment path:', attachment); // Debug log
+  
+  // If attachment is already a full storage path like 'documents/filename.jpg'
+  if (attachment && attachment.startsWith('documents/')) {
+    return `/storage/${attachment}`;
+  }
+  
+  // If it's just a filename, construct the full path
+  const filename = getFileName(attachment);
+  return `/storage/documents/${filename}`;
 }
 
 const openPdfInNewTab = (attachment) => {
@@ -711,24 +741,67 @@ const openPdfInNewTab = (attachment) => {
 }
 
 const handleImageError = (event) => {
-  console.error('Error loading image:', event)
-  previewLoading.value = false
-  // Fallback to download if image fails to load
-  const filename = getFileName(currentAttachment.value)
-  event.target.style.display = 'none'
+  console.error('Image error event:', event);
+  previewLoading.value = false;
+  
+  // Show fallback content
+  const fallbackDiv = document.createElement('div');
+  fallbackDiv.className = 'bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center';
+  fallbackDiv.innerHTML = `
+    <svg class="w-12 h-12 mx-auto text-yellow-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+    </svg>
+    <p class="text-yellow-800 font-medium">Image failed to load</p>
+    <p class="text-yellow-600 text-sm mt-1">You can still download the image file.</p>
+  `;
+  
+  // Replace the image with fallback content
+  if (event.target.parentNode) {
+    event.target.style.display = 'none';
+    event.target.parentNode.appendChild(fallbackDiv);
+  }
 }
 
 // Update the viewAttachment method to handle loading state
-const viewAttachment = (attachment) => {
-  currentAttachment.value = attachment
-  previewLoading.value = true
-  showAttachmentPreview.value = true
+const viewAttachment = async (attachment) => {
+  currentAttachment.value = attachment;
+  previewLoading.value = true;
+  showAttachmentPreview.value = true;
+  
+  console.log('Viewing attachment:', attachment); // Debug log
+  console.log('Image URL will be:', getAttachmentUrl(attachment)); // Debug log
   
   // For non-image files, we don't need loading state
   if (!isImageFile(attachment)) {
-    previewLoading.value = false
+    previewLoading.value = false;
+  } else {
+    // For images, preload to check if they're accessible
+    await preloadImage(attachment);
   }
 }
+
+const preloadImage = (attachment) => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const imageUrl = getAttachmentUrl(attachment);
+    
+    img.onload = () => {
+      console.log('Image loaded successfully:', imageUrl);
+      previewLoading.value = false;
+      resolve(true);
+    };
+    
+    img.onerror = () => {
+      console.error('Failed to load image:', imageUrl);
+      previewLoading.value = false;
+      resolve(false);
+    };
+    
+    img.src = imageUrl;
+  });
+}
+
+
 
 // Update the closeAttachmentPreview method to reset loading state
 const closeAttachmentPreview = () => {
@@ -930,20 +1003,65 @@ const showErrorMessage = (message) => {
   }, 3000)
 }
 
-// Load documents for this section
+// Update the loadDocuments method to handle "All" selection
 const loadDocuments = async () => {
   loading.value = true
   try {
-    // If a subtype is selected, filter by that subtype
-    const typeId = selectedSubType.value || props.siteId
-    const response = await fetch(`/admin/documents/content/${typeId}`)
-    const data = await response.json()
-    documents.value = data.content || []
+    let typeId;
+    
+    if (selectedSubType.value) {
+      // If a specific subtype is selected, use that subtype ID
+      typeId = selectedSubType.value;
+    } else {
+      // If "All" is selected, we need to get all subtypes for this section plus the main type
+      const allTypeIds = [props.siteId]; // Include the main type ID
+      
+      // Add all subtype IDs for this section
+      if (hasSubTypes(props.siteId)) {
+        const subtypes = getSubTypes(props.siteId);
+        subtypes.forEach(subtype => {
+          allTypeIds.push(subtype.id);
+        });
+      }
+      
+      // We'll need to modify the backend to handle multiple type IDs
+      // For now, we'll fetch all documents and filter client-side
+      typeId = props.siteId; // This will get documents for the main type
+    }
+    
+    const response = await fetch(`/admin/documents/content/${typeId}`);
+    const data = await response.json();
+    
+    let allDocuments = data.content || [];
+    
+    // If we're showing "All", we need to fetch documents for all subtypes
+    if (!selectedSubType.value && hasSubTypes(props.siteId)) {
+      // Fetch documents for each subtype
+      const subtypes = getSubTypes(props.siteId);
+      const subtypePromises = subtypes.map(async (subtype) => {
+        try {
+          const subtypeResponse = await fetch(`/admin/documents/content/${subtype.id}`);
+          const subtypeData = await subtypeResponse.json();
+          return subtypeData.content || [];
+        } catch (error) {
+          console.error(`Error loading documents for subtype ${subtype.id}:`, error);
+          return [];
+        }
+      });
+      
+      const subtypeDocumentsArrays = await Promise.all(subtypePromises);
+      const subtypeDocuments = subtypeDocumentsArrays.flat();
+      
+      // Combine main type documents with subtype documents
+      allDocuments = [...allDocuments, ...subtypeDocuments];
+    }
+    
+    documents.value = allDocuments;
   } catch (error) {
-    console.error('Error loading documents:', error)
-    showErrorMessage('Failed to load documents')
+    console.error('Error loading documents:', error);
+    showErrorMessage('Failed to load documents');
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
