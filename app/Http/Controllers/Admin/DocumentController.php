@@ -6,14 +6,17 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\DocType;
 use App\Models\DocInfo;
+use App\Models\DocTypeField;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class DocumentController extends Controller
 {
     /**
-     * Get all document types
+     * Get all document types with field configurations
      */
     public function getTypes(Request $request)
     {
@@ -28,26 +31,174 @@ class DocumentController extends Controller
     }
 
     /**
+     * Get field configurations for a specific document type
+     */
+    public function getFieldConfigurations($typeId)
+    {
+        $enabledFields = DocTypeField::where('doc_type_id', $typeId)
+            ->where('is_enabled', true)
+            ->pluck('field_id')
+            ->toArray();
+
+        return response()->json([
+            'enabledFields' => $enabledFields
+        ]);
+    }
+
+    /**
+     * Update field configuration
+     */
+    public function updateFieldConfiguration(Request $request, $typeId, $fieldId)
+    {
+        $request->validate([
+            'enabled' => 'required|boolean'
+        ]);
+
+        DB::transaction(function () use ($typeId, $fieldId, $request) {
+            $fieldConfig = DocTypeField::where('doc_type_id', $typeId)
+                ->where('field_id', $fieldId)
+                ->first();
+
+            if ($request->enabled) {
+                if (!$fieldConfig) {
+                    DocTypeField::create([
+                        'doc_type_id' => $typeId,
+                        'field_id' => $fieldId,
+                        'is_enabled' => true
+                    ]);
+                } else {
+                    $fieldConfig->update(['is_enabled' => true]);
+                }
+            } else {
+                if ($fieldConfig) {
+                    $fieldConfig->update(['is_enabled' => false]);
+                }
+            }
+        });
+
+        return response()->json([
+            'message' => 'Field configuration updated successfully'
+        ]);
+    }
+
+    /**
+     * Copy field configuration to multiple types
+     */
+    public function copyFieldConfiguration(Request $request)
+    {
+        $request->validate([
+            'source_type_id' => 'required|exists:doc_type,id',
+            'target_type_ids' => 'required|array',
+            'target_type_ids.*' => 'exists:doc_type,id',
+            'field_config' => 'required|array'
+        ]);
+
+        DB::transaction(function () use ($request) {
+            foreach ($request->target_type_ids as $targetTypeId) {
+                // First, disable all fields for target type
+                DocTypeField::where('doc_type_id', $targetTypeId)
+                    ->update(['is_enabled' => false]);
+
+                // Then enable the specified fields
+                foreach ($request->field_config as $fieldId) {
+                    $fieldConfig = DocTypeField::where('doc_type_id', $targetTypeId)
+                        ->where('field_id', $fieldId)
+                        ->first();
+
+                    if ($fieldConfig) {
+                        $fieldConfig->update(['is_enabled' => true]);
+                    } else {
+                        DocTypeField::create([
+                            'doc_type_id' => $targetTypeId,
+                            'field_id' => $fieldId,
+                            'is_enabled' => true
+                        ]);
+                    }
+                }
+            }
+        });
+
+        return response()->json([
+            'message' => 'Field configuration copied successfully'
+        ]);
+    }
+
+    /**
+     * Get all document types with their field configurations
+     */
+    public function getDocumentTypesWithFields()
+    {
+        $mainTypes = DocType::whereNull('parent_id')->get();
+        $subTypes = DocType::whereNotNull('parent_id')->get();
+        
+        $availableFields = [
+            ['id' => 1, 'name' => 'Title', 'description' => 'Document title field', 'type' => 'title'],
+            ['id' => 2, 'name' => 'Description', 'description' => 'Document description field', 'type' => 'description'],
+            ['id' => 3, 'name' => 'Attachments', 'description' => 'File attachments field', 'type' => 'attachments'],
+            ['id' => 4, 'name' => 'Content', 'description' => 'Rich text content field', 'type' => 'content'],
+        ];
+
+        // Get all field configurations
+        $fieldConfigurations = DocTypeField::where('is_enabled', true)
+            ->get()
+            ->groupBy('doc_type_id')
+            ->map(function ($configs) {
+                return $configs->pluck('field_id')->toArray();
+            });
+
+        return response()->json([
+            'mainTypes' => $mainTypes,
+            'subTypes' => $subTypes,
+            'availableFields' => $availableFields,
+            'fieldConfigurations' => $fieldConfigurations
+        ]);
+    }
+
+    // ... Keep all your existing methods below (storeType, updateType, destroyType, etc.)
+    // Just add the new methods above and keep all your existing methods as they are
+
+    /**
+     * Store a new document type
+     */
+        /**
      * Store a new document type
      */
     public function storeType(Request $request)
     {
-        $request->validate([
-            'type_name' => 'required|string|max:255',
-            'type_name_bn' => 'nullable|string|max:255',
-            'parent_id' => 'nullable|exists:doc_type,id'
-        ]);
+        Log::info('StoreType called', ['request' => $request->all()]);
+        
+        try {
+            $request->validate([
+                'type_name' => 'required|string|max:255',
+                'type_name_bn' => 'nullable|string|max:255',
+                'parent_id' => 'nullable|exists:doc_type,id'
+            ]);
 
-        $type = DocType::create([
-            'type_name' => $request->type_name,
-            'type_name_bn' => $request->type_name_bn,
-            'parent_id' => $request->parent_id
-        ]);
+            Log::info('Validation passed');
 
-        return response()->json([
-            'message' => 'Document type created successfully',
-            'type' => $type
-        ]);
+            $type = DocType::create([
+                'type_name' => $request->type_name,
+                'type_name_bn' => $request->type_name_bn,
+                'parent_id' => $request->parent_id
+            ]);
+
+            Log::info('Document type created', ['type' => $type]);
+
+            return response()->json([
+                'message' => 'Document type created successfully',
+                'type' => $type
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error creating document type: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to create document type: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -79,27 +230,47 @@ class DocumentController extends Controller
      */
     public function destroyType($id)
     {
-        $type = DocType::findOrFail($id);
-        
-        // Check if type has any documents
-        if ($type->documents()->exists()) {
+        try {
+            $type = DocType::findOrFail($id);
+            
+            // Prevent deletion of core types
+            $coreTypeIds = [1, 2, 3, 4, 5]; // Services, Download, News, FAQ, Contact
+            if (in_array($type->id, $coreTypeIds)) {
+                return response()->json([
+                    'error' => 'Core document types cannot be deleted.'
+                ], 422);
+            }
+            
+            // Check if type has any documents
+            if ($type->documents()->exists()) {
+                return response()->json([
+                    'error' => 'Cannot delete document type that has documents associated with it.'
+                ], 422);
+            }
+
+            // Check if type has children
+            if ($type->children()->exists()) {
+                return response()->json([
+                    'error' => 'Cannot delete document type that has sub-types.'
+                ], 422);
+            }
+
+            // Delete field configurations
+            DocTypeField::where('doc_type_id', $id)->delete();
+
+            $type->delete();
+
             return response()->json([
-                'error' => 'Cannot delete document type that has documents associated with it.'
-            ], 422);
-        }
+                'message' => 'Document type deleted successfully'
+            ]);
 
-        // Check if type has children
-        if ($type->children()->exists()) {
+        } catch (\Exception $e) {
+            Log::error('Error deleting document type: ' . $e->getMessage());
+            
             return response()->json([
-                'error' => 'Cannot delete document type that has sub-types.'
-            ], 422);
+                'error' => 'Failed to delete document type: ' . $e->getMessage()
+            ], 500);
         }
-
-        $type->delete();
-
-        return response()->json([
-            'message' => 'Document type deleted successfully'
-        ]);
     }
 
     /**
@@ -252,12 +423,6 @@ class DocumentController extends Controller
 
         // For Inertia, redirect back with success message
         return redirect()->back()->with('success', 'Document created successfully');
-        
-        // Alternative: Return JSON response for API calls
-        // return response()->json([
-        //     'message' => 'Document created successfully',
-        //     'document' => $document
-        // ]);
     }
 
     /**
@@ -304,12 +469,6 @@ class DocumentController extends Controller
 
         // For Inertia, redirect back with success message
         return redirect()->back()->with('success', 'Document updated successfully');
-        
-        // Alternative: Return JSON response for API calls
-        // return response()->json([
-        //     'message' => 'Document updated successfully',
-        //     'document' => $document
-        // ]);
     }
 
     /**
@@ -333,11 +492,6 @@ class DocumentController extends Controller
 
         // For Inertia, redirect back with success message
         return redirect()->back()->with('success', 'Document deleted successfully');
-        
-        // Alternative: Return JSON response for API calls
-        // return response()->json([
-        //     'message' => 'Document deleted successfully'
-        // ]);
     }
 
     /**

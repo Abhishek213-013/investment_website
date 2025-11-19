@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\InvestorAuthController;
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\DocumentController;
+use App\Http\Controllers\Admin\CommitteeController;
 use Illuminate\Support\Facades\Hash;
 
 Route::get('/', function () {
@@ -464,6 +465,34 @@ Route::prefix('admin')->group(function () {
         Route::get('/attachment/download/{filename}', [DocumentController::class, 'downloadAttachment'])->name('admin.documents.attachment.download');
         Route::get('/attachment/view/{filename}', [DocumentController::class, 'viewAttachment'])->name('admin.documents.attachment.view');
         Route::delete('/attachment/{id}', [DocumentController::class, 'deleteAttachment'])->name('admin.documents.attachment.delete');
+        
+        // =====================
+        // FIELD CONFIGURATION ROUTES
+        // =====================
+        
+        // Field Configuration Routes
+        Route::get('/field-config/{typeId}', [DocumentController::class, 'getFieldConfigurations'])->name('admin.documents.field-config');
+        Route::put('/field-config/{typeId}/{fieldId}', [DocumentController::class, 'updateFieldConfiguration'])->name('admin.documents.field-config.update');
+        Route::post('/field-config/copy', [DocumentController::class, 'copyFieldConfiguration'])->name('admin.documents.field-config.copy');
+        Route::get('/types-with-fields', [DocumentController::class, 'getDocumentTypesWithFields'])->name('admin.documents.types-with-fields');
+    });
+    
+    // =====================
+    // COMMITTEE MANAGEMENT ROUTES
+    // =====================
+    
+    // Committee Pages
+    Route::get('/committee/site/1', [CommitteeController::class, 'create'])->name('admin.committee.create');
+    Route::get('/committee/site/2', [CommitteeController::class, 'edit'])->name('admin.committee.edit');
+    Route::get('/committee/site/3', [CommitteeController::class, 'index'])->name('admin.committee.index');
+    
+    // Committee API Routes
+    Route::prefix('committee')->group(function () {
+        Route::post('', [CommitteeController::class, 'store'])->name('admin.committee.store');
+        Route::get('/all', [CommitteeController::class, 'getAllCommittees'])->name('admin.committee.all');
+        Route::get('/{id}', [CommitteeController::class, 'show'])->name('admin.committee.show');
+        Route::put('/{id}', [CommitteeController::class, 'update'])->name('admin.committee.update');
+        Route::delete('/{id}', [CommitteeController::class, 'destroy'])->name('admin.committee.destroy');
     });
     
     // Investment Management
@@ -523,35 +552,6 @@ Route::prefix('admin')->group(function () {
         
         return Inertia::render('Admin/Transactions/Index');
     })->name('admin.transactions');
-    
-    // Reports
-    Route::get('/reports/financial', function () {
-        if (!Auth::check()) {
-            return redirect()->route('login');
-        }
-        
-        $user = Auth::user();
-        
-        if (!in_array($user->user_type, ['admin', 'super_admin'])) {
-            abort(403, 'Access denied. Administrator privileges required.');
-        }
-        
-        return Inertia::render('Admin/Reports/Financial');
-    })->name('admin.reports.financial');
-    
-    Route::get('/reports/investor', function () {
-        if (!Auth::check()) {
-            return redirect()->route('login');
-        }
-        
-        $user = Auth::user();
-        
-        if (!in_array($user->user_type, ['admin', 'super_admin'])) {
-            abort(403, 'Access denied. Administrator privileges required.');
-        }
-        
-        return Inertia::render('Admin/Reports/Investor');
-    })->name('admin.reports.investor');
     
     // Settings
     Route::get('/settings', function () {
@@ -669,4 +669,13 @@ Route::get('/test-super-admin', function () {
 
 Route::fallback(function () {
     return Inertia::render('Errors/404');
+});
+
+// Add this to your web.php file temporarily for debugging
+Route::get('/test-document-types', function () {
+    return response()->json([
+        'test' => 'API is working',
+        'mainTypes' => \App\Models\DocType::whereNull('parent_id')->get(),
+        'subTypes' => \App\Models\DocType::whereNotNull('parent_id')->get()
+    ]);
 });

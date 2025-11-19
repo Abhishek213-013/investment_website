@@ -126,9 +126,21 @@
                         <span v-else class="text-gray-400 text-xs">No attachments</span>
                       </template>
                       <template v-else-if="field.type === 'content'">
-                        <div>
-                          <div class="max-w-xs">{{ document.content || '-' }}</div>
-                          <div v-if="document.content_bn" class="text-gray-500 text-xs">{{ document.content_bn }}</div>
+                        <div class="max-w-xs">
+                          <!-- English Content -->
+                          <div 
+                            v-if="document.content"
+                            class="prose prose-sm max-w-none text-gray-900 mb-3"
+                            v-html="document.content"
+                          ></div>
+                          <div v-else class="text-gray-400 text-sm">-</div>
+                          
+                          <!-- Bangla Content -->
+                          <div 
+                            v-if="document.content_bn"
+                            class="prose prose-sm max-w-none text-gray-500 text-xs border-t border-gray-100 pt-2 mt-2"
+                            v-html="document.content_bn"
+                          ></div>
                         </div>
                       </template>
                     </td>
@@ -159,11 +171,21 @@
   <!-- Add/Edit Document Modal -->
   <div v-if="showDocumentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-      <div class="px-6 py-4 border-b border-gray-200">
+      <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
         <h3 class="text-lg font-medium text-gray-900">
           {{ editingDocument ? 'Edit' : 'Add New' }} {{ getSectionName(siteId) }}
           <span v-if="selectedSubType" class="text-indigo-600"> - {{ getSelectedSubTypeName() }}</span>
         </h3>
+        <!-- X Button to close modal -->
+        <button 
+          @click="closeDocumentModal"
+          class="text-gray-400 hover:text-gray-600 transition-colors"
+          :disabled="formLoading"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
       </div>
       
       <form @submit.prevent="saveDocument" class="p-6 space-y-6">
@@ -266,27 +288,33 @@
             <label for="content_text" class="block text-sm font-medium text-gray-700 mb-2">
               Content (English)
             </label>
-            <textarea
-              id="content_text"
-              v-model="formData.content_text"
-              rows="6"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Enter content in English"
-              :disabled="formLoading"
-            ></textarea>
+            <div class="summernote-container">
+              <textarea
+                id="content_text"
+                ref="contentTextEditor"
+                v-model="formData.content_text"
+                rows="6"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 summernote-editor"
+                placeholder="Enter content in English"
+                :disabled="formLoading"
+              ></textarea>
+            </div>
           </div>
           <div>
             <label for="content_bn" class="block text-sm font-medium text-gray-700 mb-2">
               Content (Bangla)
             </label>
-            <textarea
-              id="content_bn"
-              v-model="formData.content_bn"
-              rows="6"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="বাংলায় কন্টেন্ট লিখুন"
-              :disabled="formLoading"
-            ></textarea>
+            <div class="summernote-container">
+              <textarea
+                id="content_bn"
+                ref="contentBnEditor"
+                v-model="formData.content_bn"
+                rows="6"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 summernote-editor"
+                placeholder="বাংলায় কন্টেন্ট লিখুন"
+                :disabled="formLoading"
+              ></textarea>
+            </div>
           </div>
         </div>
 
@@ -427,22 +455,25 @@
     {{ errorMessage }}
   </div>
 
-    <!-- Attachment Preview Modal -->
-    <div v-if="showAttachmentPreview" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+  <!-- Attachment Preview Modal -->
+  <div v-if="showAttachmentPreview" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+      <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
         <h3 class="text-lg font-medium text-gray-900">Attachment Preview</h3>
-        <button @click="closeAttachmentPreview" class="text-gray-400 hover:text-gray-600">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button 
+          @click="closeAttachmentPreview" 
+          class="text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
+          </svg>
         </button>
-        </div>
-        <div class="p-6 max-h-[calc(90vh-80px)] overflow-y-auto">
+      </div>
+      <div class="p-6 max-h-[calc(90vh-80px)] overflow-y-auto">
         <!-- Loading State -->
         <div v-if="previewLoading" class="flex items-center justify-center py-12">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            <span class="ml-2 text-gray-600">Loading preview...</span>
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <span class="ml-2 text-gray-600">Loading preview...</span>
         </div>
 
         <!-- Image Preview -->
@@ -494,83 +525,86 @@
 
         <!-- PDF Preview -->
         <div v-else-if="isPdfFile(currentAttachment)" class="text-center">
-            <div class="bg-red-50 border border-red-200 rounded-lg p-8 max-w-md mx-auto">
+          <div class="bg-red-50 border border-red-200 rounded-lg p-8 max-w-md mx-auto">
             <svg class="w-16 h-16 mx-auto text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
             <h4 class="text-lg font-medium text-red-800 mb-2">PDF Document</h4>
             <p class="text-red-700 mb-4">{{ getFileName(currentAttachment) }}</p>
             <p class="text-sm text-red-600 mb-4">PDF files can be viewed directly in the browser or downloaded.</p>
             <div class="flex justify-center space-x-3">
-                <button
+              <button
                 @click="openPdfInNewTab(currentAttachment)"
                 class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors inline-flex items-center"
-                >
+              >
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                 </svg>
                 View PDF
-                </button>
-                <button
+              </button>
+              <button
                 @click="downloadAttachment(currentAttachment)"
                 class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors inline-flex items-center"
-                >
+              >
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
                 Download PDF
-                </button>
+              </button>
             </div>
-            </div>
+          </div>
         </div>
 
         <!-- Document Preview (Word, etc.) -->
         <div v-else-if="isDocumentFile(currentAttachment)" class="text-center">
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-8 max-w-md mx-auto">
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-8 max-w-md mx-auto">
             <svg class="w-16 h-16 mx-auto text-blue-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
             <h4 class="text-lg font-medium text-blue-800 mb-2">Document File</h4>
             <p class="text-blue-700 mb-4">{{ getFileName(currentAttachment) }}</p>
             <p class="text-sm text-blue-600 mb-4">This document can be downloaded and opened with appropriate software.</p>
             <button
-                @click="downloadAttachment(currentAttachment)"
-                class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors inline-flex items-center"
+              @click="downloadAttachment(currentAttachment)"
+              class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors inline-flex items-center"
             >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                Download Document
+              </svg>
+              Download Document
             </button>
-            </div>
+          </div>
         </div>
 
         <!-- Unknown File Type -->
         <div v-else class="text-center">
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-8 max-w-md mx-auto">
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-8 max-w-md mx-auto">
             <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
             <h4 class="text-lg font-medium text-gray-800 mb-2">File Preview</h4>
             <p class="text-gray-600 mb-2">{{ currentAttachment }}</p>
             <p class="text-sm text-gray-500 mb-4">Preview not available for this file type. You can download the file to view it.</p>
             <button
-                @click="downloadAttachment(currentAttachment)"
-                class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+              @click="downloadAttachment(currentAttachment)"
+              class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
             >
-                Download File
+              Download File
             </button>
-            </div>
+          </div>
         </div>
-        </div>
+      </div>
     </div>
-    </div>
+  </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, nextTick, onUnmounted } from 'vue'
 import { router } from '@inertiajs/vue3'
+import $ from 'jquery'
+import 'summernote/dist/summernote-lite.min.css'
+import 'summernote/dist/summernote-lite.min.js'
 import AdminSidebar from '../../../Layouts/AdminSidebar.vue'
 import AdminNavbar from '../../../Layouts/AdminNavbar.vue'
 
@@ -591,14 +625,94 @@ const successMessage = ref('')
 const errorMessage = ref('')
 const loading = ref(false)
 const formLoading = ref(false)
+const documentTypes = ref([])
 const editingDocument = ref(null)
 const selectedFiles = ref([])
 const currentAttachment = ref('')
 const selectedSubType = ref('') // For submenu selection
 const previewLoading = ref(false)
-
+const contentTextEditor = ref(null)
+const contentBnEditor = ref(null)
+const summernoteInstances = ref([])
+const availableFields = ref([])
 // Documents data
 const documents = ref([])
+const fieldConfigurations = ref({})
+
+const initializeSummernote = () => {
+  // Destroy existing instances first
+  destroySummernote()
+  
+  // Initialize English content editor
+  if (contentTextEditor.value) {
+    $(contentTextEditor.value).summernote({
+      height: 300,
+      toolbar: [
+        ['style', ['style']],
+        ['font', ['bold', 'underline', 'clear']],
+        ['fontname', ['fontname']],
+        ['color', ['color']],
+        ['para', ['ul', 'ol', 'paragraph']],
+        ['table', ['table']],
+        ['insert', ['link', 'picture', 'video']],
+        ['view', ['fullscreen', 'codeview', 'help']]
+      ],
+      callbacks: {
+        onChange: function(contents) {
+          formData.content_text = contents
+        },
+        onBlur: function() {
+          formData.content_text = $(contentTextEditor.value).summernote('code')
+        }
+      }
+    })
+    summernoteInstances.value.push($(contentTextEditor.value))
+  }
+
+  // Initialize Bangla content editor
+  if (contentBnEditor.value) {
+    $(contentBnEditor.value).summernote({
+      height: 300,
+      toolbar: [
+        ['style', ['style']],
+        ['font', ['bold', 'underline', 'clear']],
+        ['fontname', ['fontname']],
+        ['color', ['color']],
+        ['para', ['ul', 'ol', 'paragraph']],
+        ['table', ['table']],
+        ['insert', ['link', 'picture', 'video']],
+        ['view', ['fullscreen', 'codeview', 'help']]
+      ],
+      callbacks: {
+        onChange: function(contents) {
+          formData.content_bn = contents
+        },
+        onBlur: function() {
+          formData.content_bn = $(contentBnEditor.value).summernote('code')
+        }
+      }
+    })
+    summernoteInstances.value.push($(contentBnEditor.value))
+  }
+}
+
+const destroySummernote = () => {
+  summernoteInstances.value.forEach(instance => {
+    if (instance.summernote) {
+      instance.summernote('destroy')
+    }
+  })
+  summernoteInstances.value = []
+}
+
+const resetSummernoteContent = () => {
+  if (contentTextEditor.value && $(contentTextEditor.value).summernote) {
+    $(contentTextEditor.value).summernote('reset')
+  }
+  if (contentBnEditor.value && $(contentBnEditor.value).summernote) {
+    $(contentBnEditor.value).summernote('reset')
+  }
+}
 
 // Form data
 const formData = reactive({
@@ -613,47 +727,47 @@ const formData = reactive({
 });
 
 // Section configurations based on siteId
-const sectionConfigs = {
-  1: { // Services
-    name: 'Services',
-    fields: [
-      { type: 'title', name: 'Title' },
-      { type: 'description', name: 'Description' },
-      { type: 'attachments', name: 'Attachments' }
-    ]
-  },
-  2: { // Download
-    name: 'Download',
-    fields: [
-      { type: 'title', name: 'Title' },
-      { type: 'attachments', name: 'Attachments' }
-    ]
-  },
-  3: { // News
-    name: 'News',
-    fields: [
-      { type: 'title', name: 'Title' },
-      { type: 'description', name: 'Description' },
-      { type: 'attachments', name: 'Attachments' },
-      { type: 'content', name: 'Content' }
-    ]
-  },
-  4: { // FAQ
-    name: 'FAQ',
-    fields: [
-      { type: 'title', name: 'Title' },
-      { type: 'content', name: 'Content' }
-    ]
-  },
-  5: { // Contact
-    name: 'Contact',
-    fields: [
-      { type: 'title', name: 'Title' },
-      { type: 'attachments', name: 'Attachments' },
-      { type: 'content', name: 'Content' }
-    ]
-  }
-}
+// const sectionConfigs = {
+//   1: { // Services
+//     name: 'Services',
+//     fields: [
+//       { type: 'title', name: 'Title' },
+//       { type: 'description', name: 'Description' },
+//       { type: 'attachments', name: 'Attachments' }
+//     ]
+//   },
+//   2: { // Download
+//     name: 'Download',
+//     fields: [
+//       { type: 'title', name: 'Title' },
+//       { type: 'attachments', name: 'Attachments' }
+//     ]
+//   },
+//   3: { // News
+//     name: 'News',
+//     fields: [
+//       { type: 'title', name: 'Title' },
+//       { type: 'description', name: 'Description' },
+//       { type: 'attachments', name: 'Attachments' },
+//       { type: 'content', name: 'Content' }
+//     ]
+//   },
+//   4: { // FAQ
+//     name: 'FAQ',
+//     fields: [
+//       { type: 'title', name: 'Title' },
+//       { type: 'content', name: 'Content' }
+//     ]
+//   },
+//   5: { // Contact
+//     name: 'Contact',
+//     fields: [
+//       { type: 'title', name: 'Title' },
+//       { type: 'attachments', name: 'Attachments' },
+//       { type: 'content', name: 'Content' }
+//     ]
+//   }
+// }
 
 // Subtypes data (this would come from your API in real app)
 const subTypes = ref({
@@ -688,6 +802,7 @@ const getSelectedSubTypeName = () => {
   const subType = getSubTypes(props.siteId).find(st => st.id == selectedSubType.value)
   return subType ? subType.type_name : ''
 }
+
 const getFileType = (filename) => {
   if (!filename) return 'unknown'
   
@@ -713,7 +828,6 @@ const openImageInNewTab = (attachment) => {
   window.open(imageUrl, '_blank');
 }
 
-
 const isPdfFile = (filename) => {
   return getFileType(filename) === 'pdf'
 }
@@ -721,6 +835,7 @@ const isPdfFile = (filename) => {
 const isDocumentFile = (filename) => {
   return getFileType(filename) === 'document'
 }
+
 const getAttachmentUrl = (attachment) => {
   console.log('Original attachment path:', attachment); // Debug log
   
@@ -801,27 +916,92 @@ const preloadImage = (attachment) => {
   });
 }
 
-
-
 // Update the closeAttachmentPreview method to reset loading state
 const closeAttachmentPreview = () => {
   showAttachmentPreview.value = false
   currentAttachment.value = ''
   previewLoading.value = false
 }
+
 // Methods
 const getSectionName = (siteId) => {
-  return sectionConfigs[siteId]?.name || 'Document'
+  const type = documentTypes.value.find(t => t.id === parseInt(siteId))
+  return type ? type.type_name : 'Document'
+}
+
+const loadDocumentTypes = async () => {
+  try {
+    const response = await fetch('/admin/documents/types')
+    if (response.ok) {
+      const data = await response.json()
+      documentTypes.value = data.types || []
+    }
+  } catch (error) {
+    console.error('Error loading document types:', error)
+  }
 }
 
 const getFieldsForSection = () => {
-  return sectionConfigs[props.siteId]?.fields || []
+  const typeId = getCurrentTypeId()
+  if (!typeId || !fieldConfigurations.value[typeId]) {
+    return []
+  }
+  
+  const enabledFieldIds = fieldConfigurations.value[typeId] || []
+  return availableFields.value.filter(field => enabledFieldIds.includes(field.id))
+}
+
+const getCurrentTypeId = () => {
+  if (selectedSubType.value) {
+    return selectedSubType.value
+  }
+  return props.siteId
 }
 
 const hasField = (fieldType) => {
   return getFieldsForSection().some(field => field.type === fieldType)
 }
+const loadFieldConfigurations = async () => {
+  try {
+    const typeId = getCurrentTypeId()
+    if (!typeId) return
 
+    const response = await fetch(`/admin/documents/field-config/${typeId}`)
+    if (response.ok) {
+      const data = await response.json()
+      fieldConfigurations.value[typeId] = data.enabledFields || []
+    }
+  } catch (error) {
+    console.error('Error loading field configurations:', error)
+  }
+}
+
+const loadAvailableFields = async () => {
+  try {
+    const response = await fetch('/admin/documents/types-with-fields')
+    if (response.ok) {
+      const data = await response.json()
+      availableFields.value = data.availableFields || []
+    } else {
+      // Fallback fields if API fails
+      availableFields.value = [
+        { id: 1, name: 'Title', description: 'Document title field', type: 'title' },
+        { id: 2, name: 'Description', description: 'Document description field', type: 'description' },
+        { id: 3, name: 'Attachments', description: 'File attachments field', type: 'attachments' },
+        { id: 4, name: 'Content', description: 'Rich text content field', type: 'content' }
+      ]
+    }
+  } catch (error) {
+    console.error('Error loading available fields:', error)
+    // Fallback fields
+    availableFields.value = [
+      { id: 1, name: 'Title', description: 'Document title field', type: 'title' },
+      { id: 2, name: 'Description', description: 'Document description field', type: 'description' },
+      { id: 3, name: 'Attachments', description: 'File attachments field', type: 'attachments' },
+      { id: 4, name: 'Content', description: 'Rich text content field', type: 'content' }
+    ]
+  }
+}
 const getFileName = (filePath) => {
   return filePath.split('/').pop() || filePath
 }
@@ -835,8 +1015,8 @@ const formatFileSize = (bytes) => {
 }
 
 const onSubTypeChange = () => {
-  // Reload documents when subtype changes
   loadDocuments()
+  loadFieldConfigurations() // Reload field config when subtype changes
 }
 
 const openAddDocumentModal = () => {
@@ -850,6 +1030,14 @@ const openAddDocumentModal = () => {
   }
   
   showDocumentModal.value = true
+  
+  // Initialize Summernote after modal is shown
+  nextTick(() => {
+    setTimeout(() => {
+      initializeSummernote()
+      resetSummernoteContent()
+    }, 100)
+  })
 }
 
 const editDocument = (document) => {
@@ -866,6 +1054,20 @@ const editDocument = (document) => {
   })
   selectedFiles.value = []
   showDocumentModal.value = true
+  
+  // Initialize Summernote with existing content after modal is shown
+  nextTick(() => {
+    setTimeout(() => {
+      initializeSummernote()
+      // Set the content in Summernote editors
+      if (contentTextEditor.value && $(contentTextEditor.value).summernote) {
+        $(contentTextEditor.value).summernote('code', formData.content_text)
+      }
+      if (contentBnEditor.value && $(contentBnEditor.value).summernote) {
+        $(contentBnEditor.value).summernote('code', formData.content_bn)
+      }
+    }, 100)
+  })
 }
 
 const deleteDocument = async (document) => {
@@ -938,15 +1140,31 @@ const saveDocument = async () => {
 
     if (editingDocument.value) {
       // Update existing document
-      await router.post(`/admin/documents/content/${editingDocument.value.id}`, formDataToSend)
+      await router.post(`/admin/documents/content/${editingDocument.value.id}`, formDataToSend, {
+        onSuccess: () => {
+          // Close modal and show success message
+          closeDocumentModal()
+          loadDocuments()
+          showSuccessMessage('Document updated successfully')
+        },
+        onError: (errors) => {
+          showErrorMessage('Failed to update document')
+        }
+      })
     } else {
       // Create new document
-      await router.post('/admin/documents/content', formDataToSend)
+      await router.post('/admin/documents/content', formDataToSend, {
+        onSuccess: () => {
+          // Close modal and show success message
+          closeDocumentModal()
+          loadDocuments()
+          showSuccessMessage('Document created successfully')
+        },
+        onError: (errors) => {
+          showErrorMessage('Failed to create document')
+        }
+      })
     }
-    
-    // The redirect will happen automatically from the controller
-    closeDocumentModal()
-    loadDocuments() // Reload to show the new/updated document
     
   } catch (error) {
     showErrorMessage('An error occurred while saving the document')
@@ -954,7 +1172,6 @@ const saveDocument = async () => {
     formLoading.value = false
   }
 }
-
 
 const downloadAttachment = (attachment) => {
   const filename = getFileName(attachment)
@@ -968,15 +1185,21 @@ const downloadAttachment = (attachment) => {
 }
 
 const closeDocumentModal = () => {
-  showDocumentModal.value = false
-  editingDocument.value = null
-  resetFormData()
-  selectedFiles.value = []
+  // Only close if not loading
+  if (!formLoading.value) {
+    // Destroy Summernote instances before closing
+    destroySummernote()
+    
+    showDocumentModal.value = false
+    editingDocument.value = null
+    resetFormData()
+    selectedFiles.value = []
+  }
 }
 
 const resetFormData = () => {
   Object.assign(formData, {
-    doc_type_id: selectedSubType.value || '', // Preserve selected subtype
+    doc_type_id: selectedSubType.value || '',
     title: '',
     title_bn: '',
     description: '',
@@ -1057,21 +1280,81 @@ const loadDocuments = async () => {
     }
     
     documents.value = allDocuments;
+    await loadFieldConfigurations()
   } catch (error) {
-    console.error('Error loading documents:', error);
-    showErrorMessage('Failed to load documents');
+    console.error('Error loading documents:', error)
+    showErrorMessage('Failed to load documents')
   } finally {
-    loading.value = false;
+    loading.value = false
+  }
+}
+
+// Add keyboard event listener for Escape key
+const handleKeydown = (event) => {
+  if (event.key === 'Escape') {
+    if (showDocumentModal.value) {
+      closeDocumentModal()
+    }
+    if (showAttachmentPreview.value) {
+      closeAttachmentPreview()
+    }
   }
 }
 
 // Lifecycle
 onMounted(() => {
   console.log('Document Site page mounted for site:', props.siteId)
-  loadDocuments()
+  loadAvailableFields().then(() => {
+    loadDocumentTypes().then(() => {
+      loadDocuments()
+      loadFieldConfigurations()
+    })
+  })
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  destroySummernote()
+  document.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
 <style scoped>
-/* Custom styles if needed */
+/* Summernote custom styles */
+.summernote-container {
+  position: relative;
+}
+
+:deep(.note-editor) {
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.375rem !important;
+}
+
+:deep(.note-toolbar) {
+  background-color: #f9fafb !important;
+  border-bottom: 1px solid #d1d5db !important;
+  border-radius: 0.375rem 0.375rem 0 0 !important;
+}
+
+:deep(.note-editing-area) {
+  border-radius: 0 0 0.375rem 0.375rem !important;
+}
+
+:deep(.note-btn) {
+  background-color: white !important;
+  border: 1px solid #d1d5db !important;
+  color: #374151 !important;
+}
+
+:deep(.note-btn:hover) {
+  background-color: #f3f4f6 !important;
+}
+
+:deep(.note-modal) {
+  z-index: 10000 !important;
+}
+
+:deep(.note-dropdown-menu) {
+  z-index: 10001 !important;
+}
 </style>

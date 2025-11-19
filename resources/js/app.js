@@ -5,6 +5,14 @@ import { createApp, h } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 
+// Import jQuery and make it available globally
+import $ from 'jquery';
+window.$ = window.jQuery = $;
+
+// Import Summernote CSS and JS
+import 'summernote/dist/summernote-lite.min.css';
+import 'summernote/dist/summernote-lite.min.js';
+
 const appName = window.document.getElementsByTagName('title')[0]?.innerText || 'InvestPro';
 
 createInertiaApp({

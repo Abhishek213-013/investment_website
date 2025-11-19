@@ -9,13 +9,16 @@ class DocType extends Model
 {
     use HasFactory;
 
-    protected $table = 'doc_types';
+    protected $table = 'doc_type'; // Make sure this matches your actual table name
     
     protected $fillable = [
         'type_name',
         'type_name_bn',
         'parent_id'
     ];
+
+    // Add this line to disable timestamps
+    public $timestamps = false;
 
     /**
      * Get the parent type
