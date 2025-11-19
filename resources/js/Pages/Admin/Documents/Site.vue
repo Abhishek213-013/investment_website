@@ -63,7 +63,7 @@
 
             <!-- Documents Table -->
             <div v-else class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
+              <table class="min-w-full divide-y divide-gray-200" v-if="getFieldsForSection().length > 0">
                 <thead class="bg-gray-50">
                   <tr>
                     <th 
@@ -161,6 +161,24 @@
                   </tr>
                 </tbody>
               </table>
+              
+              <!-- Show message if no fields are configured -->
+              <div v-if="getFieldsForSection().length === 0 && !loading" class="text-center py-8 bg-yellow-50 rounded-lg">
+                <svg class="w-12 h-12 mx-auto text-yellow-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+                <h3 class="text-lg font-medium text-yellow-800 mb-2">No Fields Configured</h3>
+                <p class="text-yellow-700 mb-4">
+                  No fields are configured for {{ getSectionName(siteId) }}. 
+                  Please configure the fields in the Document Types Management page.
+                </p>
+                <button 
+                  @click="goToFieldConfiguration"
+                  class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors"
+                >
+                  Configure Fields
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -221,7 +239,7 @@
           </p>
         </div>
 
-        <!-- Title Fields -->
+        <!-- Title Fields (Always shown as it's required) -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
@@ -252,7 +270,7 @@
           </div>
         </div>
 
-        <!-- Description Fields (if applicable for this section) -->
+        <!-- Description Fields (conditionally shown) -->
         <div v-if="hasField('description')" class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
@@ -282,7 +300,7 @@
           </div>
         </div>
 
-        <!-- Content Fields (if applicable for this section) -->
+        <!-- Content Fields (conditionally shown) -->
         <div v-if="hasField('content')" class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label for="content_text" class="block text-sm font-medium text-gray-700 mb-2">
@@ -318,7 +336,7 @@
           </div>
         </div>
 
-        <!-- Attachments Field (if applicable for this section) -->
+        <!-- Attachments Field (conditionally shown) -->
         <div v-if="hasField('attachments')">
           <label class="block text-sm font-medium text-gray-700 mb-2">
             Attachments
@@ -478,13 +496,7 @@
 
         <!-- Image Preview -->
         <div v-else-if="isImageFile(currentAttachment)" class="text-center">
-          <div v-if="previewLoading" class="flex flex-col items-center justify-center py-12">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
-            <span class="text-gray-600">Loading image preview...</span>
-            <span class="text-gray-400 text-sm mt-1">URL: {{ getAttachmentUrl(currentAttachment) }}</span>
-          </div>
-          
-          <div v-else class="space-y-4">
+          <div class="space-y-4">
             <!-- Image container with fallback -->
             <div class="relative bg-gray-100 rounded-lg p-4 min-h-[200px] flex items-center justify-center">
               <img 
@@ -726,50 +738,7 @@ const formData = reactive({
   attachments: ''
 });
 
-// Section configurations based on siteId
-// const sectionConfigs = {
-//   1: { // Services
-//     name: 'Services',
-//     fields: [
-//       { type: 'title', name: 'Title' },
-//       { type: 'description', name: 'Description' },
-//       { type: 'attachments', name: 'Attachments' }
-//     ]
-//   },
-//   2: { // Download
-//     name: 'Download',
-//     fields: [
-//       { type: 'title', name: 'Title' },
-//       { type: 'attachments', name: 'Attachments' }
-//     ]
-//   },
-//   3: { // News
-//     name: 'News',
-//     fields: [
-//       { type: 'title', name: 'Title' },
-//       { type: 'description', name: 'Description' },
-//       { type: 'attachments', name: 'Attachments' },
-//       { type: 'content', name: 'Content' }
-//     ]
-//   },
-//   4: { // FAQ
-//     name: 'FAQ',
-//     fields: [
-//       { type: 'title', name: 'Title' },
-//       { type: 'content', name: 'Content' }
-//     ]
-//   },
-//   5: { // Contact
-//     name: 'Contact',
-//     fields: [
-//       { type: 'title', name: 'Title' },
-//       { type: 'attachments', name: 'Attachments' },
-//       { type: 'content', name: 'Content' }
-//     ]
-//   }
-// }
-
-// Subtypes data (this would come from your API in real app)
+// Subtypes data
 const subTypes = ref({
   1: [ // Services subtypes
     { id: 6, type_name: 'Offline Services', type_name_bn: 'অফলাইন সেবা', parent_id: 1 },
@@ -837,7 +806,7 @@ const isDocumentFile = (filename) => {
 }
 
 const getAttachmentUrl = (attachment) => {
-  console.log('Original attachment path:', attachment); // Debug log
+  console.log('Original attachment path:', attachment);
   
   // If attachment is already a full storage path like 'documents/filename.jpg'
   if (attachment && attachment.startsWith('documents/')) {
@@ -883,8 +852,8 @@ const viewAttachment = async (attachment) => {
   previewLoading.value = true;
   showAttachmentPreview.value = true;
   
-  console.log('Viewing attachment:', attachment); // Debug log
-  console.log('Image URL will be:', getAttachmentUrl(attachment)); // Debug log
+  console.log('Viewing attachment:', attachment);
+  console.log('Image URL will be:', getAttachmentUrl(attachment));
   
   // For non-image files, we don't need loading state
   if (!isImageFile(attachment)) {
@@ -925,30 +894,43 @@ const closeAttachmentPreview = () => {
 
 // Methods
 const getSectionName = (siteId) => {
-  const type = documentTypes.value.find(t => t.id === parseInt(siteId))
-  return type ? type.type_name : 'Document'
-}
-
-const loadDocumentTypes = async () => {
-  try {
-    const response = await fetch('/admin/documents/types')
-    if (response.ok) {
-      const data = await response.json()
-      documentTypes.value = data.types || []
-    }
-  } catch (error) {
-    console.error('Error loading document types:', error)
+  const sectionNames = {
+    1: 'Services',
+    2: 'Download', 
+    3: 'News',
+    4: 'FAQ',
+    5: 'Contact'
   }
+  return sectionNames[siteId] || 'Document'
 }
 
 const getFieldsForSection = () => {
   const typeId = getCurrentTypeId()
-  if (!typeId || !fieldConfigurations.value[typeId]) {
-    return []
+  
+  let enabledFields = []
+  
+  // If we have field configurations, use them
+  if (typeId && fieldConfigurations.value[typeId] && fieldConfigurations.value[typeId].length > 0) {
+    const enabledFieldIds = fieldConfigurations.value[typeId]
+    enabledFields = availableFields.value.filter(field => enabledFieldIds.includes(field.id))
+    console.log('Using configured fields for type', typeId, ':', enabledFields)
+  } else {
+    // If no configurations, use all available fields as fallback
+    enabledFields = [...availableFields.value]
+    console.log('No field configurations found for type', typeId, 'Using all available fields as fallback:', enabledFields)
   }
   
-  const enabledFieldIds = fieldConfigurations.value[typeId] || []
-  return availableFields.value.filter(field => enabledFieldIds.includes(field.id))
+  // Ensure title field is always included (as it's required)
+  if (!enabledFields.some(field => field.type === 'title')) {
+    const titleField = availableFields.value.find(field => field.type === 'title')
+    if (titleField) {
+      enabledFields.unshift(titleField)
+      console.log('Added title field as it was missing')
+    }
+  }
+  
+  console.log('Final fields for display:', enabledFields)
+  return enabledFields
 }
 
 const getCurrentTypeId = () => {
@@ -961,6 +943,7 @@ const getCurrentTypeId = () => {
 const hasField = (fieldType) => {
   return getFieldsForSection().some(field => field.type === fieldType)
 }
+
 const loadFieldConfigurations = async () => {
   try {
     const typeId = getCurrentTypeId()
@@ -970,9 +953,19 @@ const loadFieldConfigurations = async () => {
     if (response.ok) {
       const data = await response.json()
       fieldConfigurations.value[typeId] = data.enabledFields || []
+      console.log('Loaded field config for type', typeId, ':', data.enabledFields)
+    } else {
+      console.warn('Failed to load field config for type', typeId)
+      // Initialize with empty array if API fails
+      fieldConfigurations.value[typeId] = []
     }
   } catch (error) {
     console.error('Error loading field configurations:', error)
+    // Initialize with empty array on error
+    const typeId = getCurrentTypeId()
+    if (typeId) {
+      fieldConfigurations.value[typeId] = []
+    }
   }
 }
 
@@ -982,6 +975,7 @@ const loadAvailableFields = async () => {
     if (response.ok) {
       const data = await response.json()
       availableFields.value = data.availableFields || []
+      console.log('Loaded available fields:', availableFields.value)
     } else {
       // Fallback fields if API fails
       availableFields.value = [
@@ -990,6 +984,7 @@ const loadAvailableFields = async () => {
         { id: 3, name: 'Attachments', description: 'File attachments field', type: 'attachments' },
         { id: 4, name: 'Content', description: 'Rich text content field', type: 'content' }
       ]
+      console.log('Using fallback fields:', availableFields.value)
     }
   } catch (error) {
     console.error('Error loading available fields:', error)
@@ -1000,8 +995,10 @@ const loadAvailableFields = async () => {
       { id: 3, name: 'Attachments', description: 'File attachments field', type: 'attachments' },
       { id: 4, name: 'Content', description: 'Rich text content field', type: 'content' }
     ]
+    console.log('Using fallback fields due to error:', availableFields.value)
   }
 }
+
 const getFileName = (filePath) => {
   return filePath.split('/').pop() || filePath
 }
@@ -1226,6 +1223,10 @@ const showErrorMessage = (message) => {
   }, 3000)
 }
 
+const goToFieldConfiguration = () => {
+  router.visit('/admin/documents/type')
+}
+
 // Update the loadDocuments method to handle "All" selection
 const loadDocuments = async () => {
   loading.value = true
@@ -1280,7 +1281,7 @@ const loadDocuments = async () => {
     }
     
     documents.value = allDocuments;
-    await loadFieldConfigurations()
+    console.log('Loaded documents:', documents.value)
   } catch (error) {
     console.error('Error loading documents:', error)
     showErrorMessage('Failed to load documents')
@@ -1304,12 +1305,18 @@ const handleKeydown = (event) => {
 // Lifecycle
 onMounted(() => {
   console.log('Document Site page mounted for site:', props.siteId)
+  
+  // Load everything in sequence
   loadAvailableFields().then(() => {
-    loadDocumentTypes().then(() => {
-      loadDocuments()
-      loadFieldConfigurations()
-    })
+    console.log('Available fields loaded:', availableFields.value)
+    return loadDocuments()
+  }).then(() => {
+    console.log('Documents loaded, now loading field configurations')
+    return loadFieldConfigurations()
+  }).catch(error => {
+    console.error('Error during initialization:', error)
   })
+  
   document.addEventListener('keydown', handleKeydown)
 })
 

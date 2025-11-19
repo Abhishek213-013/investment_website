@@ -1,17 +1,16 @@
 <template>
   <aside class="w-64 bg-white border-r border-gray-200 fixed h-screen overflow-y-auto flex flex-col justify-between px-4 py-4 sidebar-font">
     <!-- Top: Logo + Navigation -->
-    <div class="logo">
+    <div class="logo w-[100px] h-[15px]">
       <a href="/admin">
-        <div class="logo-container flex justify-center">
-          <img src="/assets/logo.png" class="logo-image h-10 w-auto">
-          <span class="ml-2 text-lg font-semibold">InvestPro</span>
+        <div class="logo-container  w-[150px]">
+          <img src="/assets/logo.png"  alt="InvestPro" class="logo-image  w-full  ">
         </div>
       </a>
     </div>
 
     <!-- Sidebar Navigation -->
-    <nav class="space-y-0.5 mt-1">
+    <nav class="space-y-1 mt-10 ">
       <!-- Dashboard -->
       <div>
         <button 
@@ -32,13 +31,13 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
           </svg>
         </button>
-        <div v-show="activeMenu === 'dashboard'" class="ml-8 mt-0.5 space-y-0.5">
+        <div v-show="activeMenu === 'dashboard'" class="ml-8 mt-1 space-y-0.5">
           <a href="/admin" class="submenu-link sidebar-text">Overview</a>
           <a href="/admin/analytics" class="submenu-link sidebar-text">Analytics</a>
         </div>
       </div>
 
-      <p class="sidebar-label px-2 mt-1 mb-0.5">
+      <p class="sidebar-label px-2 mt-4 mb-1">
         User Management
       </p>
 
@@ -62,38 +61,36 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
           </svg>
         </button>
-        <div v-show="activeMenu === 'users'" class="ml-8 mt-0.5 space-y-0.5">
+        <div v-show="activeMenu === 'users'" class="ml-8 mt-1 space-y-0.5">
           <a href="/admin/users/super-admins" class="submenu-link sidebar-text">Super Admin</a>
           <a href="/admin/users/admins" class="submenu-link sidebar-text">Admin</a>
           <a href="/admin/users/investors" class="submenu-link sidebar-text">Investors</a>
         </div>
       </div>
 
-
-      <!-- Investment Management -->
+      <!-- Pages Section (Replaced Investments) -->
       <div>
         <button 
-          @click="toggleMenu('investments')"
+          @click="toggleMenu('pages')"
           class="w-full flex items-center justify-between p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors sidebar-font"
         >
           <div class="flex items-center">
             <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            <span class="sidebar-text">Investments</span>
+            <span class="sidebar-text">Pages</span>
           </div>
           <svg 
             class="w-4 h-4 transition-transform duration-200" 
-            :class="{ 'rotate-180': activeMenu === 'investments' }"
+            :class="{ 'rotate-180': activeMenu === 'pages' }"
             fill="none" stroke="currentColor" viewBox="0 0 24 24"
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
           </svg>
         </button>
-        <div v-show="activeMenu === 'investments'" class="ml-8 mt-0.5 space-y-0.5">
-          <a href="/admin/investments" class="submenu-link sidebar-text">All Investments</a>
-          <a href="/admin/investments/categories" class="submenu-link sidebar-text">Categories</a>
-          <a href="/admin/investments/performance" class="submenu-link sidebar-text">Performance</a>
+        <div v-show="activeMenu === 'pages'" class="ml-8 mt-1 space-y-0.5">
+          <a href="/admin/pages/site/1" class="submenu-link sidebar-text">Add New Page</a>
+          <a href="/admin/pages/site/2" class="submenu-link sidebar-text">Update Existing Page</a>
         </div>
       </div>
 
@@ -117,7 +114,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
           </svg>
         </button>
-        <div v-show="activeMenu === 'documents'" class="ml-8 mt-0.5 space-y-0.5">
+        <div v-show="activeMenu === 'documents'" class="ml-8 mt-1 space-y-0.5">
           <a href="/admin/documents/type" class="submenu-link sidebar-text">Document Type</a>
           <a href="/admin/documents/site/1" class="submenu-link sidebar-text">Services</a>
           <a href="/admin/documents/site/2" class="submenu-link sidebar-text">Download</a>
@@ -147,7 +144,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
           </svg>
         </button>
-        <div v-show="activeMenu === 'committee'" class="ml-8 mt-0.5 space-y-0.5">
+        <div v-show="activeMenu === 'committee'" class="ml-8 mt-1 space-y-0.5">
           <a href="/admin/committee/site/1" class="submenu-link sidebar-text">Create New Committee</a>
           <a href="/admin/committee/site/2" class="submenu-link sidebar-text">Update Committee</a>
           <a href="/admin/committee/site/3" class="submenu-link sidebar-text">Committee List</a>
@@ -175,7 +172,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
           </svg>
         </button>
-        <div v-show="activeMenu === 'settings'" class="ml-8 mt-0.5 space-y-0.5">
+        <div v-show="activeMenu === 'settings'" class="ml-8 mt-1 space-y-0.5">
           <a href="/admin/settings/general" class="submenu-link sidebar-text">General</a>
           <a href="/admin/settings/security" class="submenu-link sidebar-text">Security</a>
           <a href="/admin/settings/notifications" class="submenu-link sidebar-text">Notifications</a>
@@ -238,13 +235,6 @@ onMounted(() => {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
 }
 
-/* Logo styles */
-.logo-image {
-  height: 2.5rem; /* h-10 */
-  width: auto;
-  object-fit: contain;
-}
-
 .rotate-180 {
   transform: rotate(180deg);
 }
@@ -263,5 +253,10 @@ onMounted(() => {
   color: #4f46e5;
   background-color: #f9fafb;
   text-decoration: none;
+}
+
+.logo-image {
+  object-fit: cover;
+  height: 40px;
 }
 </style>

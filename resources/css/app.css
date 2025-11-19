@@ -1,20 +1,178 @@
+/* resources/css/app.css */
 @import 'tailwindcss';
-
 @import '@fortawesome/fontawesome-free/css/all.css';
 
-/* Custom styles for investment platform */
+/* InvestPro Color System */
+:root {
+  /* Primary Colors */
+  --primary-color: #143d59;
+  --primary-hover: #0f2d42;
+  --secondary-color: #3cb371;
+  --secondary-hover: #329a60;
+  --accent-gold: #c4a44b;
+  --accent-teal: #008080;
+  --accent-light: #e6e6dc;
+  
+  /* Text Colors */
+  --text-primary: #143d59;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --text-inverse: #ffffff;
+  
+  /* Background Colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #e6e6dc;
+  --bg-dark: #143d59;
+  
+  /* Border Colors */
+  --border-color: #e2e8f0;
+  --border-light: #f1f5f9;
+  --border-dark: #143d59;
+}
+
+/* Dark Theme */
+.dark-theme {
+  --text-primary: #ffffff;
+  --text-secondary: #e2e8f0;
+  --text-muted: #a0aec0;
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --border-color: #334155;
+  --border-light: #475569;
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Utility Classes */
+.text-investpro-primary { color: var(--primary-color); }
+.text-investpro-secondary { color: var(--secondary-color); }
+.text-investpro-accent { color: var(--accent-gold); }
+.text-investpro-teal { color: var(--accent-teal); }
+.text-investpro-light { color: var(--accent-light); }
+
+.bg-investpro-primary { background-color: var(--primary-color); }
+.bg-investpro-secondary { background-color: var(--secondary-color); }
+.bg-investpro-accent { background-color: var(--accent-gold); }
+.bg-investpro-teal { background-color: var(--accent-teal); }
+.bg-investpro-light { background-color: var(--accent-light); }
+
+/* Button Styles */
 .btn-invest {
-    @apply bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300;
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-teal));
+  color: white;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-invest:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(20, 61, 89, 0.3);
+  color: white;
 }
 
 .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300;
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 6px;
+  border: none;
+  transition: all 0.3s ease;
 }
 
-.card-investment {
-    @apply bg-white rounded-lg shadow-md hover:shadow-lg transition duration-300 p-6;
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
 }
 
-.nav-link {
-    @apply text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition duration-300;
+.btn-accent {
+  background-color: var(--accent-gold);
+  color: white;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 6px;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-accent:hover {
+  background-color: #b39442;
+  transform: translateY(-1px);
+}
+
+/* Card Styles */
+.feature-card {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border-color: var(--secondary-color);
+}
+
+/* Badge Styles */
+.badge-success {
+  background-color: var(--secondary-color);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+/* Hero Section */
+.hero-section {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-teal) 100%);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ensure Font Awesome icons work properly */
+.icon-fixed {
+  font-family: 'Font Awesome 6 Free' !important;
+  font-weight: 900 !important;
+}
+
+/* Fix for Summernote in dark mode */
+.dark-theme .note-editor {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.dark-theme .note-editor .note-toolbar {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+.dark-theme .note-editor .note-editable {
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }

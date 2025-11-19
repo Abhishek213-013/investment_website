@@ -8,11 +8,112 @@ use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\CommitteeController;
+use App\Http\Controllers\Admin\PageController;
+use App\Http\Controllers\Frontend\HomeController;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Response;
+
+// =====================
+// HOME ROUTE
+// =====================
+Route::get('/home', function () {
+    return Inertia::render('Frontend/Home', [
+        'featuredServices' => [
+            [
+                'id' => 1,
+                'title' => __('Stock Trading'),
+                'description' => __('Trade stocks from global markets with advanced tools and real-time data'),
+                'icon' => 'fas fa-chart-line',
+                'features' => [__('Real-time Data'), __('Advanced Charts'), __('Global Markets')]
+            ],
+            [
+                'id' => 2,
+                'title' => __('Cryptocurrency'),
+                'description' => __('Buy, sell and trade cryptocurrencies with secure wallet integration'),
+                'icon' => 'fab fa-bitcoin',
+                'features' => [__('100+ Coins'), __('Secure Wallet'), __('24/7 Trading')]
+            ],
+            [
+                'id' => 3,
+                'title' => __('Portfolio Management'),
+                'description' => __('Professional portfolio management with automated rebalancing and insights'),
+                'icon' => 'fas fa-briefcase',
+                'features' => [__('Auto Rebalance'), __('Risk Analysis'), __('Performance Tracking')]
+            ]
+        ],
+        'marketNews' => [
+            [
+                'id' => 1,
+                'title' => __('Stock Markets Reach New Highs Amid Economic Recovery'),
+                'excerpt' => __('Global stock markets continue their upward trend as economic indicators show strong recovery signals...'),
+                'category' => __('Stocks'),
+                'published_at' => now()->toISOString(),
+                'read_time' => 3,
+                'slug' => 'stock-markets-highs'
+            ],
+            [
+                'id' => 2,
+                'title' => __('Cryptocurrency Regulation Updates: What Investors Need to Know'),
+                'excerpt' => __('New regulatory frameworks are shaping the future of cryptocurrency investments worldwide...'),
+                'category' => __('Crypto'),
+                'published_at' => now()->subDay()->toISOString(),
+                'read_time' => 5,
+                'slug' => 'crypto-regulation-updates'
+            ],
+            [
+                'id' => 3,
+                'title' => __('Federal Reserve Interest Rate Decision Impacts Markets'),
+                'excerpt' => __('The latest Fed meeting results are creating waves across various investment sectors...'),
+                'category' => __('Economy'),
+                'published_at' => now()->subDays(2)->toISOString(),
+                'read_time' => 4,
+                'slug' => 'fed-rate-decision'
+            ]
+        ],
+        'stats' => [
+            'total_investors' => 50000,
+            'total_volume' => 2500000000,
+            'total_assets' => 150,
+            'total_countries' => 80,
+            'total_returns' => 15.2
+        ],
+        'featuredFaqs' => [
+            [
+                'id' => 1,
+                'question' => __('How do I start investing with InvestPro?'),
+                'answer' => __('Simply download our app, complete the registration process, verify your identity, and fund your account to start investing.')
+            ],
+            [
+                'id' => 2,
+                'question' => __('What is the minimum investment amount?'),
+                'answer' => __('You can start investing with as little as $50. We believe in making investing accessible to everyone.')
+            ],
+            [
+                'id' => 3,
+                'question' => __('Is my investment secure?'),
+                'answer' => __('Yes, we use bank-level security encryption and follow strict regulatory compliance to protect your investments and personal data.')
+            ]
+        ],
+        'content' => [
+            'home_hero_title' => __('Smart Investing Made Simple'),
+            'home_hero_subtitle' => __('Join thousands of investors growing their wealth with our expert guidance and advanced trading tools.'),
+            'home_hero_primary_button' => __('Start Investing'),
+            'home_download_button' => __('Download App'),
+            'home_services_title' => __('Our Investment Services'),
+            'home_services_subtitle' => __('Comprehensive investment solutions tailored to your financial goals'),
+            'home_news_title' => __('Latest Market News'),
+            'home_news_subtitle' => __('Stay updated with the latest financial market trends and insights'),
+            'home_cta_title' => __('Ready to Start Your Investment Journey?'),
+            'home_cta_subtitle' => __('Join thousands of successful investors and take control of your financial future'),
+            'home_cta_button' => __('Create Account')
+        ]
+    ]);
+})->name('home');
 
 Route::get('/', function () {
-    return Inertia::render('Auth/Login');
-})->name('home');
+    return redirect()->route('home');
+});
 
 Route::get('/login', function () {
     return Inertia::render('Auth/Login');
@@ -357,6 +458,28 @@ Route::prefix('admin')->group(function () {
     })->name('admin.dashboard');
     
     // =====================
+    // PAGE MANAGEMENT ROUTES
+    // =====================
+    
+    // Page Management Routes
+    Route::get('/pages/site/{type}', [PageController::class, 'index'])->name('admin.pages.index');
+    Route::post('/pages/store', [PageController::class, 'store'])->name('admin.pages.store');
+    Route::get('/pages/{page}/edit', [PageController::class, 'edit'])->name('admin.pages.edit');
+    Route::put('/pages/{page}', [PageController::class, 'update'])->name('admin.pages.update');
+    Route::delete('/pages/{page}', [PageController::class, 'destroy'])->name('admin.pages.destroy');
+    
+    // Page API Routes
+    Route::prefix('pages')->group(function () {
+        Route::get('/all', [PageController::class, 'getAllPages'])->name('admin.pages.all');
+        Route::get('/{id}', [PageController::class, 'show'])->name('admin.pages.show');
+        Route::post('/{id}/sections', [PageController::class, 'addSection'])->name('admin.pages.sections.store');
+        Route::put('/sections/{sectionId}', [PageController::class, 'updateSection'])->name('admin.pages.sections.update');
+        Route::delete('/sections/{sectionId}', [PageController::class, 'deleteSection'])->name('admin.pages.sections.destroy');
+        Route::post('/sections/{sectionId}/attachments', [PageController::class, 'uploadAttachment'])->name('admin.pages.sections.attachments.upload');
+        Route::delete('/sections/{sectionId}/attachments/{attachmentIndex}', [PageController::class, 'deleteAttachment'])->name('admin.pages.attachments.destroy');
+    });
+    
+    // =====================
     // USER MANAGEMENT ROUTES
     // =====================
     
@@ -495,7 +618,7 @@ Route::prefix('admin')->group(function () {
         Route::delete('/{id}', [CommitteeController::class, 'destroy'])->name('admin.committee.destroy');
     });
     
-    // Investment Management
+    // Investment Management (Legacy - you can remove these if no longer needed)
     Route::get('/investments', function () {
         if (!Auth::check()) {
             return redirect()->route('login');
@@ -632,19 +755,56 @@ Route::prefix('super-admin')->group(function () {
 });
 
 // =====================
-// PUBLIC ROUTES
+// FRONTEND ROUTES
 // =====================
 
+// Public page viewing route
+Route::get('/page/{slug}', [PageController::class, 'view'])->name('page.view');
+
+// Attachment access route for page images and files
+Route::get('/storage/page-attachments/{filename}', function ($filename) {
+    $path = storage_path('app/public/page-attachments/' . $filename);
+    
+    if (!File::exists($path)) {
+        abort(404);
+    }
+
+    $file = File::get($path);
+    $type = File::mimeType($path);
+
+    $response = Response::make($file, 200);
+    $response->header("Content-Type", $type);
+    
+    return $response;
+})->name('page.attachments.view');
+
+// Frontend Routes
 Route::get('/about', function () {
-    return Inertia::render('About');
+    return Inertia::render('Frontend/About');
 })->name('about');
 
+Route::get('/services', function () {
+    return Inertia::render('Frontend/Services');
+})->name('services');
+
+Route::get('/download', function () {
+    return Inertia::render('Frontend/Download');
+})->name('download');
+
+Route::get('/news', function () {
+    return Inertia::render('Frontend/News');
+})->name('news');
+
+Route::get('/faq', function () {
+    return Inertia::render('Frontend/Faq');
+})->name('faq');
+
 Route::get('/contact', function () {
-    return Inertia::render('Contact');
+    return Inertia::render('Frontend/Contact');
 })->name('contact');
 
 Route::get('/investment-opportunities', function () {
-    return Inertia::render('InvestmentOpportunities');
+    return Inertia::render('Frontend/InvestmentOpportunities');
 })->name('investment-opportunities');
 
 // =====================
@@ -677,5 +837,14 @@ Route::get('/test-document-types', function () {
         'test' => 'API is working',
         'mainTypes' => \App\Models\DocType::whereNull('parent_id')->get(),
         'subTypes' => \App\Models\DocType::whereNotNull('parent_id')->get()
+    ]);
+});
+
+// Test Pages API
+Route::get('/test-pages-api', function () {
+    return response()->json([
+        'test' => 'Pages API is working',
+        'pages' => \App\Models\Page::all(),
+        'page_sections' => \App\Models\PageSection::all()
     ]);
 });

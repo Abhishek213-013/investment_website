@@ -26,6 +26,36 @@ createInertiaApp({
         vueApp.use(plugin);
         vueApp.mount(el);
         
+        // Initialize Summernote after Vue app is mounted
+        setTimeout(() => {
+            if (window.$ && window.$.fn.summernote) {
+                $('.summernote-editor').each(function() {
+                    if (!$(this).hasClass('summernote-initialized')) {
+                        $(this).summernote({
+                            height: 200,
+                            toolbar: [
+                                ['style', ['style']],
+                                ['font', ['bold', 'underline', 'clear']],
+                                ['fontname', ['fontname']],
+                                ['color', ['color']],
+                                ['para', ['ul', 'ol', 'paragraph']],
+                                ['table', ['table']],
+                                ['insert', ['link', 'picture', 'video']],
+                                ['view', ['fullscreen', 'codeview', 'help']]
+                            ],
+                            callbacks: {
+                                onChange: function(contents) {
+                                    // Update the Vue data model when content changes
+                                    const event = new Event('input', { bubbles: true });
+                                    this.dispatchEvent(event);
+                                }
+                            }
+                        }).addClass('summernote-initialized');
+                    }
+                });
+            }
+        }, 100);
+        
         return vueApp;
     },
     progress: {
