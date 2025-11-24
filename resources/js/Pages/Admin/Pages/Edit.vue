@@ -225,6 +225,7 @@
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 summernote-editor"
                         :id="'content-en-' + index"
                         placeholder="Main content in English"
+                        @input="updateSummernoteContent(index, 'content', $event.target.value)"
                       ></textarea>
                     </div>
                     
@@ -238,6 +239,7 @@
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 summernote-editor"
                         :id="'content-bn-' + index"
                         placeholder="Main content in Bengali"
+                        @input="updateSummernoteContent(index, 'content_bn', $event.target.value)"
                       ></textarea>
                     </div>
                   </div>
@@ -370,7 +372,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch, nextTick } from 'vue'
 import { router } from '@inertiajs/vue3'
 import AdminSidebar from '../../../Layouts/AdminSidebar.vue'
 import AdminNavbar from '../../../Layouts/AdminNavbar.vue'
@@ -384,6 +386,7 @@ const isSubmitting = ref(false)
 const message = ref('')
 const messageType = ref('')
 const pageData = ref(props.page)
+const summernoteInitialized = ref(false)
 
 // Page form data
 const pageForm = reactive({
@@ -455,11 +458,32 @@ const addSection = () => {
     content_allignment: 'L',
     attachment_allignment: 'R'
   })
+  
+  // Reinitialize Summernote for new section
+  nextTick(() => {
+    initSummernote()
+  })
 }
 
 const removeSection = (index) => {
   if (pageForm.sections.length > 1) {
+    // Destroy Summernote instance before removing section
+    const textareaEn = document.getElementById(`content-en-${index}`)
+    const textareaBn = document.getElementById(`content-bn-${index}`)
+    
+    if (textareaEn && window.$ && window.$.fn.summernote) {
+      $(textareaEn).summernote('destroy')
+    }
+    if (textareaBn && window.$ && window.$.fn.summernote) {
+      $(textareaBn).summernote('destroy')
+    }
+    
     pageForm.sections.splice(index, 1)
+    
+    // Reinitialize Summernote for remaining sections
+    nextTick(() => {
+      initSummernote()
+    })
   }
 }
 
@@ -474,6 +498,11 @@ const handleFileUpload = (event, sectionIndex) => {
 
 const removeFile = (sectionIndex, fileIndex) => {
   pageForm.sections[sectionIndex].new_attachments.splice(fileIndex, 1)
+}
+
+const updateSummernoteContent = (sectionIndex, field, value) => {
+  // This ensures the Vue data is updated when Summernote content changes
+  pageForm.sections[sectionIndex][field] = value
 }
 
 const deleteExistingAttachment = async (sectionId, attachmentIndex) => {
@@ -527,7 +556,32 @@ const goBack = () => {
   router.visit('/admin/pages/site/2')
 }
 
+const syncSummernoteContent = () => {
+  if (window.$ && window.$.fn.summernote) {
+    $('.summernote-editor').each(function() {
+      if ($(this).hasClass('summernote-initialized')) {
+        const contents = $(this).summernote('code')
+        const textarea = $(this)
+        const idParts = textarea.attr('id').split('-')
+        const sectionIndex = parseInt(idParts[idParts.length - 1])
+        const isBengali = textarea.attr('id').includes('content-bn')
+        
+        if (!isNaN(sectionIndex) && pageForm.sections[sectionIndex]) {
+          if (isBengali) {
+            pageForm.sections[sectionIndex].content_bn = contents
+          } else {
+            pageForm.sections[sectionIndex].content = contents
+          }
+        }
+      }
+    })
+  }
+}
+
 const submitForm = async () => {
+  // Sync Summernote content before submission
+  syncSummernoteContent()
+  
   // Validation
   if (!pageForm.page_name.trim()) {
     showMessage('Page name in English is required', 'error')
@@ -554,7 +608,7 @@ const submitForm = async () => {
     const formData = new FormData()
     formData.append('page_name', pageForm.page_name)
     formData.append('page_name_bn', pageForm.page_name_bn)
-    formData.append('_method', 'PUT') // Important for Laravel to recognize PUT request
+    formData.append('_method', 'PUT')
 
     // Process sections
     pageForm.sections.forEach((section, index) => {
@@ -564,12 +618,19 @@ const submitForm = async () => {
       formData.append(`sections[${index}][heading_bn]`, section.heading_bn || '')
       formData.append(`sections[${index}][description]`, section.description || '')
       formData.append(`sections[${index}][description_bn]`, section.description_bn || '')
+      
+      // Ensure content is properly set (this is the key fix)
       formData.append(`sections[${index}][content]`, section.content || '')
       formData.append(`sections[${index}][content_bn]`, section.content_bn || '')
+      
       formData.append(`sections[${index}][content_width]`, section.content_width)
       formData.append(`sections[${index}][attachment_width]`, section.attachment_width)
       formData.append(`sections[${index}][content_allignment]`, section.content_allignment)
       formData.append(`sections[${index}][attachment_allignment]`, section.attachment_allignment)
+
+      // Debug logging
+      console.log(`Section ${index} content:`, section.content ? 'Has content' : 'No content')
+      console.log(`Section ${index} content_bn:`, section.content_bn ? 'Has content_bn' : 'No content_bn')
 
       // Add existing attachments
       if (section.existing_attachments && section.existing_attachments.length > 0) {
@@ -586,10 +647,10 @@ const submitForm = async () => {
       }
     })
 
-    console.log('Submitting form data...')
+    console.log('Submitting form data with sections:', pageForm.sections)
 
     const response = await fetch(`/admin/pages/${pageData.value.page_id}`, {
-      method: 'POST', // Use POST method with _method=PUT
+      method: 'POST',
       headers: {
         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
         'X-Requested-With': 'XMLHttpRequest',
@@ -598,7 +659,6 @@ const submitForm = async () => {
     })
 
     console.log('Response status:', response.status)
-    console.log('Response headers:', response.headers)
 
     // Check if response is JSON
     const contentType = response.headers.get('content-type')
@@ -643,44 +703,83 @@ const submitForm = async () => {
 
 // Initialize Summernote editors
 const initSummernote = () => {
-  // This will be handled by the global app.js initialization
-  // You can add custom Summernote initialization here if needed
-  setTimeout(() => {
-    if (window.$ && window.$.fn.summernote) {
-      $('.summernote-editor').each(function() {
-        if (!$(this).hasClass('summernote-initialized')) {
-          $(this).summernote({
-            height: 300,
-            toolbar: [
-              ['style', ['style']],
-              ['font', ['bold', 'underline', 'clear']],
-              ['fontname', ['fontname']],
-              ['color', ['color']],
-              ['para', ['ul', 'ol', 'paragraph']],
-              ['table', ['table']],
-              ['insert', ['link', 'picture', 'video']],
-              ['view', ['fullscreen', 'codeview', 'help']]
-            ],
-            callbacks: {
-              onInit: function() {
-                $(this).addClass('summernote-initialized')
-              },
-              onChange: function(contents) {
-                // Update the underlying textarea
-                $(this).val(contents)
-                $(this).trigger('change')
-              }
-            }
-          })
-        }
-      })
+  if (!window.$ || !window.$.fn.summernote) {
+    console.warn('Summernote not loaded yet, retrying...')
+    setTimeout(initSummernote, 100)
+    return
+  }
+
+  $('.summernote-editor').each(function() {
+    const textarea = $(this)
+    const id = textarea.attr('id')
+    
+    if (!id || textarea.hasClass('summernote-initialized')) {
+      return
     }
-  }, 100)
+
+    const idParts = id.split('-')
+    const sectionIndex = parseInt(idParts[idParts.length - 1])
+    const isBengali = id.includes('content-bn')
+    
+    if (isNaN(sectionIndex)) {
+      console.warn('Could not parse section index from ID:', id)
+      return
+    }
+
+    textarea.summernote({
+      height: 300,
+      toolbar: [
+        ['style', ['style']],
+        ['font', ['bold', 'underline', 'clear']],
+        ['fontname', ['fontname']],
+        ['color', ['color']],
+        ['para', ['ul', 'ol', 'paragraph']],
+        ['table', ['table']],
+        ['insert', ['link', 'picture', 'video']],
+        ['view', ['fullscreen', 'codeview', 'help']]
+      ],
+      callbacks: {
+        onInit: function() {
+          textarea.addClass('summernote-initialized')
+          summernoteInitialized.value = true
+          console.log('Summernote initialized for:', id)
+        },
+        onChange: function(contents) {
+          // Update the Vue data model directly
+          if (isBengali) {
+            pageForm.sections[sectionIndex].content_bn = contents
+          } else {
+            pageForm.sections[sectionIndex].content = contents
+          }
+        },
+        onBlur: function() {
+          // Also update on blur for safety
+          const contents = textarea.summernote('code')
+          if (isBengali) {
+            pageForm.sections[sectionIndex].content_bn = contents
+          } else {
+            pageForm.sections[sectionIndex].content = contents
+          }
+        }
+      }
+    })
+  })
 }
 
 onMounted(() => {
   initializeForm()
-  initSummernote()
+  
+  // Wait for next tick to ensure DOM is rendered
+  nextTick(() => {
+    initSummernote()
+  })
+  
+  // Watch for section changes and reinitialize Summernote
+  watch(() => pageForm.sections, () => {
+    nextTick(() => {
+      initSummernote()
+    })
+  }, { deep: true, flush: 'post' })
 })
 </script>
 

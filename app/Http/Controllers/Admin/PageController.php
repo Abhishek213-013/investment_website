@@ -13,6 +13,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
+
 class PageController extends Controller
 {
     public function index($type)
@@ -131,8 +132,22 @@ class PageController extends Controller
         // Log the incoming request for debugging
         Log::info('Update page request received', [
             'page_id' => $id,
-            'data' => $request->except(['sections.*.new_attachments'])
+            'page_name' => $request->page_name,
+            'sections_count' => count($request->sections ?? []),
         ]);
+
+        // Debug each section's content
+        if ($request->sections) {
+            foreach ($request->sections as $index => $section) {
+                Log::info("Section {$index} content:", [
+                    'has_content' => !empty($section['content']),
+                    'has_content_bn' => !empty($section['content_bn']),
+                    'content_length' => strlen($section['content'] ?? ''),
+                    'content_bn_length' => strlen($section['content_bn'] ?? ''),
+                    'heading' => $section['heading'] ?? null,
+                ]);
+            }
+        }
 
         $validator = Validator::make($request->all(), [
             'page_name' => 'required|string|max:255',
@@ -211,6 +226,11 @@ class PageController extends Controller
                             'section_order' => $index,
                         ]);
                         $updatedSectionIds[] = $sectionData['page_section_id'];
+                        
+                        Log::info("Updated section {$sectionData['page_section_id']}:", [
+                            'content_length' => strlen($sectionData['content'] ?? ''),
+                            'content_bn_length' => strlen($sectionData['content_bn'] ?? ''),
+                        ]);
                     }
                 } else {
                     $section = PageSection::create([
@@ -229,6 +249,11 @@ class PageController extends Controller
                         'section_order' => $index,
                     ]);
                     $updatedSectionIds[] = $section->page_section_id;
+                    
+                    Log::info("Created new section:", [
+                        'content_length' => strlen($sectionData['content'] ?? ''),
+                        'content_bn_length' => strlen($sectionData['content_bn'] ?? ''),
+                    ]);
                 }
             }
 
@@ -246,6 +271,8 @@ class PageController extends Controller
             }
 
             DB::commit();
+
+            Log::info('Page updated successfully', ['page_id' => $page->page_id]);
 
             return response()->json([
                 'success' => true,

@@ -246,4 +246,51 @@ class CommitteeController extends Controller
             ], 500);
         }
     }
+
+        /**
+     * Public view for board of directors
+     */
+    public function publicView()
+    {
+        $committees = CommitteeInfo::with('members')
+            ->where('Committee_Type', 'Board Of Directors')
+            ->where('Committee_Expiry_Date', '>=', now())
+            ->orWhereNull('Committee_Expiry_Date')
+            ->orderBy('Committee_Starting_Date', 'desc')
+            ->get();
+
+        return Inertia::render('Frontend/About/BoardOfDirectors', [
+            'committees' => $committees
+        ]);
+    }
+
+    /**
+     * API endpoint for board of directors
+     */
+    public function getBoardOfDirectors()
+    {
+        try {
+            $committees = CommitteeInfo::with('members')
+                ->where('Committee_Type', 'Board Of Directors')
+                ->where(function($query) {
+                    $query->where('Committee_Expiry_Date', '>=', now())
+                        ->orWhereNull('Committee_Expiry_Date');
+                })
+                ->orderBy('Committee_Starting_Date', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'committees' => $committees
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Board of directors fetch failed: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load board information'
+            ], 500);
+        }
+    }
+
 }

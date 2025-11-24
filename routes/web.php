@@ -9,16 +9,51 @@ use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\CommitteeController;
 use App\Http\Controllers\Admin\PageController;
+use App\Http\Controllers\Admin\HomeInfoController;
+use App\Http\Controllers\Admin\GalleryController;
 use App\Http\Controllers\Frontend\HomeController;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Storage;
+use App\Models\Home;
+use App\Models\Album;
+use App\Models\Page;
 
 // =====================
 // HOME ROUTE
 // =====================
 Route::get('/home', function () {
+    // Fetch actual data from database - using your Home model
+    $homeInfo = Home::first();
+    
+    // If no home info exists, create a default one (shouldn't happen since you have data)
+    if (!$homeInfo) {
+        $homeInfo = new Home();
+    }
+
     return Inertia::render('Frontend/Home', [
+        'homeInfo' => [
+            'hero_title' => $homeInfo->hero_title,
+            'hero_title_bn' => $homeInfo->hero_title_bn,
+            'hero_subtitle' => $homeInfo->hero_subtitle,
+            'hero_subtitle_bn' => $homeInfo->hero_subtitle_bn,
+            'hero_image' => $homeInfo->hero_image ? Storage::url($homeInfo->hero_image) : null,
+            'hero_button1' => $homeInfo->hero_button1,
+            'hero_button1_bn' => $homeInfo->hero_button1_bn,
+            'hero_button2' => $homeInfo->hero_button2,
+            'hero_button2_bn' => $homeInfo->hero_button2_bn,
+            'service_title' => $homeInfo->service_title,
+            'service_title_bn' => $homeInfo->service_title_bn,
+            'news_title' => $homeInfo->news_title,
+            'news_title_bn' => $homeInfo->news_title_bn,
+            'faq_title' => $homeInfo->faq_title,
+            'faq_title_bn' => $homeInfo->faq_title_bn,
+            'cta_button1' => $homeInfo->cta_button1,
+            'cta_button1_bn' => $homeInfo->cta_button1_bn,
+            'cta_button2' => $homeInfo->cta_button2,
+            'cta_button2_bn' => $homeInfo->cta_button2_bn,
+        ],
         'featuredServices' => [
             [
                 'id' => 1,
@@ -68,7 +103,7 @@ Route::get('/home', function () {
                 'category' => __('Economy'),
                 'published_at' => now()->subDays(2)->toISOString(),
                 'read_time' => 4,
-                'slug' => 'fed-rate-decision'
+                'slug' => 'fed-rate-descision'
             ]
         ],
         'stats' => [
@@ -115,6 +150,130 @@ Route::get('/', function () {
     return redirect()->route('home');
 });
 
+// =====================
+// ABOUT US ROUTES
+// =====================
+
+// About Us Main Page
+Route::get('/about', function () {
+    $page = Page::with(['sections' => function($query) {
+        $query->orderBy('section_order', 'asc');
+    }])->where('page_slug', 'about-sharp-securities-limited')->firstOrFail();
+
+    return Inertia::render('Frontend/About/AboutInvestPro', [
+        'page' => [
+            'page_id' => $page->page_id,
+            'page_name' => $page->page_name,
+            'page_name_bn' => $page->page_name_bn,
+            'page_slug' => $page->page_slug,
+            'sections' => $page->sections->map(function($section) {
+                return [
+                    'page_section_id' => $section->page_section_id,
+                    'heading' => $section->heading,
+                    'heading_bn' => $section->heading_bn,
+                    'description' => $section->description,
+                    'description_bn' => $section->description_bn,
+                    'content' => $section->content,
+                    'content_bn' => $section->content_bn,
+                    'attachments' => $section->attachments,
+                    'content_width' => $section->content_width,
+                    'attachment_width' => $section->attachment_width,
+                    'content_allignment' => $section->content_allignment,
+                    'attachment_allignment' => $section->attachment_allignment,
+                    'section_order' => $section->section_order,
+                ];
+            })->toArray()
+        ]
+    ]);
+})->name('about');
+
+// Vision Mission Page
+Route::get('/about/vision-mission', function () {
+    $page = Page::with(['sections' => function($query) {
+        $query->orderBy('section_order', 'asc');
+    }])->where('page_slug', 'vission-mission-values')->firstOrFail();
+
+    return Inertia::render('Frontend/About/VisionMission', [
+        'page' => [
+            'page_id' => $page->page_id,
+            'page_name' => $page->page_name,
+            'page_name_bn' => $page->page_name_bn,
+            'page_slug' => $page->page_slug,
+            'sections' => $page->sections->map(function($section) {
+                return [
+                    'page_section_id' => $section->page_section_id,
+                    'heading' => $section->heading,
+                    'heading_bn' => $section->heading_bn,
+                    'description' => $section->description,
+                    'description_bn' => $section->description_bn,
+                    'content' => $section->content,
+                    'content_bn' => $section->content_bn,
+                    'attachments' => $section->attachments,
+                    'content_width' => $section->content_width,
+                    'attachment_width' => $section->attachment_width,
+                    'content_allignment' => $section->content_allignment,
+                    'attachment_allignment' => $section->attachment_allignment,
+                    'section_order' => $section->section_order,
+                ];
+            })->toArray()
+        ]
+    ]);
+})->name('about.vision-mission');
+
+// Message from MD Page
+Route::get('/about/message-md', function () {
+    $page = Page::with(['sections' => function($query) {
+        $query->orderBy('section_order', 'asc');
+    }])->where('page_slug', 'message-from-md')->firstOrFail();
+
+    return Inertia::render('Frontend/About/MessageFromMD', [
+        'page' => [
+            'page_id' => $page->page_id,
+            'page_name' => $page->page_name,
+            'page_name_bn' => $page->page_name_bn,
+            'page_slug' => $page->page_slug,
+            'sections' => $page->sections->map(function($section) {
+                return [
+                    'page_section_id' => $section->page_section_id,
+                    'heading' => $section->heading,
+                    'heading_bn' => $section->heading_bn,
+                    'description' => $section->description,
+                    'description_bn' => $section->description_bn,
+                    'content' => $section->content,
+                    'content_bn' => $section->content_bn,
+                    'attachments' => $section->attachments,
+                    'content_width' => $section->content_width,
+                    'attachment_width' => $section->attachment_width,
+                    'content_allignment' => $section->content_allignment,
+                    'attachment_allignment' => $section->attachment_allignment,
+                    'section_order' => $section->section_order,
+                ];
+            })->toArray()
+        ]
+    ]);
+})->name('about.message-md');
+
+// Board of Directors Page
+Route::get('/about/board', [CommitteeController::class, 'publicView'])->name('about.board');
+
+// Gallery Page
+Route::get('/about/gallery', function () {
+    return Inertia::render('Frontend/About/Gallery');
+})->name('about.gallery');
+
+// =====================
+// API ROUTES FOR ABOUT US
+// =====================
+
+// API Routes for Board of Directors
+Route::get('/api/committees/board-of-directors', [CommitteeController::class, 'getBoardOfDirectors']);
+
+// API Routes for Gallery
+Route::get('/api/gallery/albums', [GalleryController::class, 'getAlbums']);
+
+// =====================
+// AUTH ROUTES
+// =====================
 Route::get('/login', function () {
     return Inertia::render('Auth/Login');
 })->name('login');
@@ -458,6 +617,17 @@ Route::prefix('admin')->group(function () {
     })->name('admin.dashboard');
     
     // =====================
+    // HOME INFO MANAGEMENT ROUTES
+    // =====================
+    
+    // Home Page Management
+    Route::get('/home-info', [HomeInfoController::class, 'index'])->name('admin.home-info.index');
+    Route::get('/home-info/data', [HomeInfoController::class, 'getHomeInfo'])->name('admin.home-info.get');
+    Route::post('/home-info', [HomeInfoController::class, 'update'])->name('admin.home-info.update');
+    Route::post('/home-info/upload-image', [HomeInfoController::class, 'uploadImage'])->name('admin.home-info.upload-image');
+    Route::delete('/home-info/delete-image', [HomeInfoController::class, 'deleteImage'])->name('admin.home-info.delete-image');
+    
+    // =====================
     // PAGE MANAGEMENT ROUTES
     // =====================
     
@@ -617,6 +787,25 @@ Route::prefix('admin')->group(function () {
         Route::put('/{id}', [CommitteeController::class, 'update'])->name('admin.committee.update');
         Route::delete('/{id}', [CommitteeController::class, 'destroy'])->name('admin.committee.destroy');
     });
+
+    // =====================
+    // GALLERY MANAGEMENT ROUTES
+    // =====================
+
+    // Gallery Pages
+    Route::get('/gallery/site/1', [GalleryController::class, 'create'])->name('admin.gallery.create');
+    Route::get('/gallery/site/2', [GalleryController::class, 'edit'])->name('admin.gallery.edit');
+
+    // Gallery API Routes
+    Route::prefix('gallery')->group(function () {
+        Route::post('', [GalleryController::class, 'store'])->name('admin.gallery.store');
+        Route::get('/all', [GalleryController::class, 'getAllAlbums'])->name('admin.gallery.all');
+        Route::get('/{id}', [GalleryController::class, 'show'])->name('admin.gallery.show');
+        Route::put('/{id}', [GalleryController::class, 'update'])->name('admin.gallery.update');
+        Route::delete('/{id}', [GalleryController::class, 'destroy'])->name('admin.gallery.destroy');
+        Route::post('/upload-images', [GalleryController::class, 'uploadImages'])->name('admin.gallery.upload-images');
+        Route::delete('/delete-image/{albumId}/{imageIndex}', [GalleryController::class, 'deleteImage'])->name('admin.gallery.delete-image');
+    });
     
     // Investment Management (Legacy - you can remove these if no longer needed)
     Route::get('/investments', function () {
@@ -761,6 +950,9 @@ Route::prefix('super-admin')->group(function () {
 // Public page viewing route
 Route::get('/page/{slug}', [PageController::class, 'view'])->name('page.view');
 
+// Home Info API for frontend
+Route::get('/api/home-info', [HomeInfoController::class, 'getFrontendHomeInfo'])->name('home-info.frontend');
+
 // Attachment access route for page images and files
 Route::get('/storage/page-attachments/{filename}', function ($filename) {
     $path = storage_path('app/public/page-attachments/' . $filename);
@@ -778,11 +970,87 @@ Route::get('/storage/page-attachments/{filename}', function ($filename) {
     return $response;
 })->name('page.attachments.view');
 
-// Frontend Routes
-Route::get('/about', function () {
-    return Inertia::render('Frontend/About');
-})->name('about');
+// Home images access route
+Route::get('/storage/home-images/{filename}', function ($filename) {
+    $path = storage_path('app/public/home-images/' . $filename);
+    
+    if (!File::exists($path)) {
+        abort(404);
+    }
 
+    $file = File::get($path);
+    $type = File::mimeType($path);
+
+    $response = Response::make($file, 200);
+    $response->header("Content-Type", $type);
+    
+    return $response;
+})->name('home.images.view');
+
+// Gallery images access route
+Route::get('/storage/gallery/{type}/{filename}', function ($type, $filename) {
+    $path = storage_path('app/public/gallery/' . $type . '/' . $filename);
+    
+    if (!File::exists($path)) {
+        abort(404);
+    }
+
+    $file = File::get($path);
+    $mimeType = File::mimeType($path);
+
+    $response = Response::make($file, 200);
+    $response->header("Content-Type", $mimeType);
+    
+    return $response;
+})->name('gallery.images.view');
+
+// =====================
+// GALLERY FRONTEND ROUTES
+// =====================
+
+// Gallery Index Page
+Route::get('/gallery', function () {
+    $albums = Album::latest()->get()->map(function ($album) {
+        return [
+            'id' => $album->id,
+            'album_title' => $album->album_title,
+            'album_title_bn' => $album->album_title_bn,
+            'album_description' => $album->album_description,
+            'album_description_bn' => $album->album_description_bn,
+            'album_cover' => $album->album_cover_url,
+            'album_images' => $album->album_images_urls,
+            'created_at' => $album->created_at->format('Y-m-d H:i:s'),
+            'updated_at' => $album->updated_at->format('Y-m-d H:i:s'),
+        ];
+    });
+
+    return Inertia::render('Gallery/Index', [
+        'albums' => $albums
+    ]);
+})->name('gallery');
+
+// Single Album View
+Route::get('/gallery/album/{id}', function ($id) {
+    $album = Album::findOrFail($id);
+
+    $albumData = [
+        'id' => $album->id,
+        'album_title' => $album->album_title,
+        'album_title_bn' => $album->album_title_bn,
+        'album_description' => $album->album_description,
+        'album_description_bn' => $album->album_description_bn,
+        'album_cover' => $album->album_cover_url,
+        'album_images' => $album->album_images_urls,
+        'created_at' => $album->created_at->format('Y-m-d H:i:s'),
+        'updated_at' => $album->updated_at->format('Y-m-d H:i:s'),
+    ];
+
+    return Inertia::render('Gallery/AlbumView', [
+        'album' => $albumData
+    ]);
+})->name('gallery.album');
+
+// Other Frontend Routes
 Route::get('/services', function () {
     return Inertia::render('Frontend/Services');
 })->name('services');
@@ -831,6 +1099,10 @@ Route::fallback(function () {
     return Inertia::render('Errors/404');
 });
 
+// =====================
+// DEBUG ROUTES
+// =====================
+
 // Add this to your web.php file temporarily for debugging
 Route::get('/test-document-types', function () {
     return response()->json([
@@ -846,5 +1118,52 @@ Route::get('/test-pages-api', function () {
         'test' => 'Pages API is working',
         'pages' => \App\Models\Page::all(),
         'page_sections' => \App\Models\PageSection::all()
+    ]);
+});
+
+// Test Home Info API
+Route::get('/test-home-info', function () {
+    return response()->json([
+        'test' => 'Home Info API is working',
+        'home_info' => Home::all(),
+        'first_record' => Home::first()
+    ]);
+});
+
+// Test Home Info Image Upload
+Route::get('/test-home-info-image', function () {
+    return response()->json([
+        'storage_link_exists' => file_exists(public_path('storage')),
+        'home_images_dir_exists' => file_exists(storage_path('app/public/home-images')),
+        'storage_permissions' => [
+            'storage_app' => is_writable(storage_path('app')),
+            'storage_app_public' => is_writable(storage_path('app/public')),
+        ]
+    ]);
+});
+
+// Test Gallery API
+Route::get('/test-gallery-api', function () {
+    return response()->json([
+        'test' => 'Gallery API is working',
+        'albums' => Album::all(),
+        'gallery_storage_exists' => file_exists(storage_path('app/public/gallery'))
+    ]);
+});
+
+// Test About Us Routes
+Route::get('/test-about-routes', function () {
+    return response()->json([
+        'about_routes' => [
+            '/about' => 'About InvestPro',
+            '/about/vision-mission' => 'Vision Mission Values',
+            '/about/message-md' => 'Message From MD',
+            '/about/board' => 'Board of Directors',
+            '/about/gallery' => 'Gallery'
+        ],
+        'api_routes' => [
+            '/api/committees/board-of-directors' => 'Board of Directors API',
+            '/api/gallery/albums' => 'Gallery Albums API'
+        ]
     ]);
 });

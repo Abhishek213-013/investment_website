@@ -9,19 +9,20 @@
             :style="heroSectionStyle"
           >
             <div class="container">
-              <div class="row align-items-center min-h-screen">
-                <div class="col-lg-6">
+              <div class="row align-items-center hero-row">
+                <!-- Left Column - Content -->
+                <div class="col-lg-6 hero-content-col">
                   <div class="hero-content">
-                    <h1 class="hero-title gradient-text-accent">{{ displayContent.home_hero_title || t('Smart Investing Made Simple') }}</h1>
-                    <p class="hero-subtitle text-investpro-light">{{ displayContent.home_hero_subtitle || t('Join thousands of investors growing their wealth with our expert guidance and advanced trading tools.') }}</p>
+                    <h1 class="hero-title gradient-text-accent">{{ getTranslatedText('hero_title') }}</h1>
+                    <p class="hero-subtitle text-investpro-light">{{ getTranslatedText('hero_subtitle') }}</p>
                     
                     <div class="hero-actions">
                       <Link href="/register" class="btn-invest">
-                        {{ displayContent.home_cta_button || t('Start Investing') }}
+                        {{ getTranslatedText('hero_button1') }}
                       </Link>
                       <Link href="/download" class="btn btn-accent">
                         <i class="fas fa-download icon-fixed"></i>
-                        {{ t('Download App') }}
+                        {{ getTranslatedText('hero_button2') }}
                       </Link>
                     </div>
                     
@@ -41,19 +42,21 @@
                     </div>
                   </div>
                 </div>
-                <div class="col-lg-6">
-                  <div class="hero-image">
+                
+                <!-- Right Column - Image -->
+                <div class="col-lg-6 hero-image-col">
+                  <div class="hero-image-wrapper">
                     <img 
                       :src="heroImageUrl" 
                       :alt="t('Investment Platform')" 
-                      class="img-fluid hero-main-image"
+                      class="hero-main-image"
                       @error="handleHeroImageError"
                     >
                     <img 
                       ref="fallbackImage"
-                      src="/assets/img/investpro-hero.png" 
+                      src="/assets/investpro-hero.png" 
                       :alt="t('Investment Platform')" 
-                      class="img-fluid hero-fallback-image"
+                      class="hero-fallback-image"
                     >
                   </div>
                 </div>
@@ -66,8 +69,8 @@
             <div class="container">
               <div class="row mb-5">
                 <div class="col-12">
-                  <h2 class="section-title text-investpro-primary">{{ displayContent.home_services_title || t('Our Investment Services') }}</h2>
-                  <p class="section-subtitle text-investpro-teal">{{ displayContent.home_services_subtitle || t('Comprehensive investment solutions tailored to your financial goals') }}</p>
+                  <h2 class="section-title text-investpro-primary">{{ getTranslatedText('service_title') }}</h2>
+                  <p class="section-subtitle text-investpro-teal">{{ t('Comprehensive investment solutions tailored to your financial goals') }}</p>
                 </div>
               </div>
               <div class="row">
@@ -133,7 +136,7 @@
             <div class="container">
               <div class="row mb-5">
                 <div class="col-12">
-                  <h2 class="section-title text-investpro-primary">{{ t('Market News & Insights') }}</h2>
+                  <h2 class="section-title text-investpro-primary">{{ getTranslatedText('news_title') }}</h2>
                   <p class="section-subtitle text-investpro-teal">{{ t('Stay updated with the latest market trends and investment opportunities') }}</p>
                 </div>
               </div>
@@ -182,7 +185,7 @@
               <div class="row align-items-center">
                 <div class="col-lg-6">
                   <div class="faq-list">
-                    <h2 class="section-title text-investpro-primary">{{ t('Frequently Asked Questions') }}</h2>
+                    <h2 class="section-title text-investpro-primary">{{ getTranslatedText('faq_title') }}</h2>
                     <p class="section-subtitle text-investpro-teal mb-4">{{ t('Get answers to common questions about investing with us') }}</p>
                     
                     <div class="faq-item" v-for="faq in featuredFaqs.slice(0, 3)" :key="faq.id">
@@ -216,15 +219,15 @@
             <div class="container">
               <div class="row text-center">
                 <div class="col-12">
-                  <h2 class="cta-title text-white">{{ displayContent.home_cta_title || t('Ready to Start Your Investment Journey?') }}</h2>
-                  <p class="cta-subtitle text-investpro-light">{{ displayContent.home_cta_subtitle || t('Join thousands of successful investors and take control of your financial future') }}</p>
+                  <h2 class="cta-title text-white">{{ t('Ready to Start Your Investment Journey?') }}</h2>
+                  <p class="cta-subtitle text-investpro-light">{{ t('Join thousands of successful investors and take control of your financial future') }}</p>
                   <div class="cta-actions">
                     <Link href="/register" class="btn btn-hero-primary me-3">
-                      {{ displayContent.home_cta_button || t('Create Account') }}
+                      {{ getTranslatedText('cta_button1') }}
                     </Link>
                     <Link href="/download" class="btn btn-hero-secondary">
                       <i class="fas fa-download icon-fixed"></i>
-                      {{ t('Download App') }}
+                      {{ getTranslatedText('cta_button2') }}
                     </Link>
                   </div>
                 </div>
@@ -246,10 +249,6 @@ const { t, translationVersion } = useTranslation()
 
 // Define props
 const props = defineProps({
-  content: {
-    type: Object,
-    default: () => ({})
-  },
   featuredServices: Array,
   marketNews: Array,
   stats: Object,
@@ -257,6 +256,10 @@ const props = defineProps({
   currentLanguage: {
     type: String,
     default: 'en'
+  },
+  homeInfo: {
+    type: Object,
+    default: () => ({})
   }
 })
 
@@ -271,22 +274,43 @@ const isDevelopment = ref(false)
 // Define currentLanguage as a ref to fix the error
 const currentLanguage = ref(props.currentLanguage || 'en')
 
-// Local content state for smooth updates
-const localContent = ref({})
+// Get translated text based on current language - USING DATABASE DATA
+const getTranslatedText = (field) => {
+  const homeData = props.homeInfo
+  
+  if (!homeData || Object.keys(homeData).length === 0) {
+    // Return default texts if no home info is available
+    return getDefaultText(field)
+  }
+  
+  if (currentLanguage.value === 'bn' && homeData[`${field}_bn`]) {
+    return homeData[`${field}_bn`]
+  }
+  
+  return homeData[field] || getDefaultText(field)
+}
 
-// Initialize local content with props
-onMounted(() => {
-  localContent.value = { ...props.content }
-})
-
-// Enhanced computed properties
-const displayContent = computed(() => {
-  return Object.keys(localContent.value).length > 0 ? localContent.value : props.content
-})
+// Default texts fallback - ONLY USED IF DATABASE IS EMPTY
+const getDefaultText = (field) => {
+  const defaults = {
+    hero_title: t('Smart Investing Made Simple'),
+    hero_subtitle: t('Join thousands of investors growing their wealth with our expert guidance and advanced trading tools.'),
+    hero_button1: t('Start Investing'),
+    hero_button2: t('Download App'),
+    service_title: t('Our Investment Services'),
+    news_title: t('Market News & Insights'),
+    faq_title: t('Frequently Asked Questions'),
+    cta_button1: t('Create Account'),
+    cta_button2: t('Download App')
+  }
+  
+  return defaults[field] || ''
+}
 
 const heroImageUrl = computed(() => {
-  const customImage = displayContent.value.home_hero_image;
-  return customImage && customImage !== '/assets/img/investpro-hero.png' ? customImage : '/assets/img/investpro-hero.png';
+  // Use database image if available, otherwise fallback
+  const customImage = props.homeInfo?.hero_image;
+  return customImage && customImage !== '/assets/investpro-hero.png' ? customImage : '/assets/investpro-hero.png';
 })
 
 const heroSectionStyle = computed(() => {
@@ -410,19 +434,23 @@ const preloadHeroImage = () => {
   img.src = heroImageUrl.value;
   
   img.onload = () => {
+    console.log('Hero image loaded successfully:', heroImageUrl.value);
     heroImageLoaded.value = true;
     heroImageError.value = false;
   };
   
   img.onerror = () => {
+    console.error('Failed to preload hero image:', heroImageUrl.value);
     heroImageError.value = true;
     heroImageLoaded.value = false;
   };
 }
 
 const handleHeroImageError = (event) => {
+  console.error('Hero image failed to load:', event.target.src);
   heroImageError.value = true;
   
+  // Show fallback image
   if (fallbackImage.value) {
     const mainImage = event.target;
     const fallback = fallbackImage.value;
@@ -472,18 +500,17 @@ watch(currentLanguage, (newLang, oldLang) => {
   }
 });
 
-watch(() => props.content, (newContent) => {
-  if (newContent && Object.keys(newContent).length > 0) {
-    localContent.value = { ...newContent };
-    contentRefreshKey.value++;
-  }
-}, { deep: true, immediate: true });
-
 watch(() => props.currentLanguage, (newLang) => {
   if (newLang && newLang !== currentLanguage.value) {
     currentLanguage.value = newLang;
   }
 });
+
+watch(() => props.homeInfo, (newHomeInfo) => {
+  if (newHomeInfo && Object.keys(newHomeInfo).length > 0) {
+    contentRefreshKey.value++;
+  }
+}, { deep: true, immediate: true });
 
 watch(translationVersion, () => {
   contentRefreshKey.value++;
@@ -514,6 +541,7 @@ onUnmounted(() => {
   window.removeEventListener('themeChanged', handleThemeChange)
 })
 </script>
+
 
 <style scoped>
 /* ==================== */
@@ -611,78 +639,7 @@ onUnmounted(() => {
 }
 
 /* ==================== */
-/* HERO IMAGE STYLES */
-/* ==================== */
-.hero-image {
-  position: relative;
-  text-align: center;
-  animation: float 3s ease-in-out infinite;
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.hero-main-image {
-  max-width: 100%;
-  border-radius: 10px;
-  box-shadow: var(--shadow-lg);
-  transition: opacity 0.3s ease;
-  width: 100%;
-  height: auto;
-}
-
-.hero-fallback-image {
-  max-width: 100%;
-  border-radius: 10px;
-  box-shadow: var(--shadow-lg);
-  display: none; /* Hidden by default */
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-20px);
-  }
-}
-
-/* ==================== */
-/* ICON FIXES FOR LANGUAGE SWITCH */
-/* ==================== */
-.icon-fixed {
-  font-family: 'Font Awesome 6 Free' !important;
-  font-weight: 900 !important;
-  font-style: normal !important;
-  font-variant: normal !important;
-  text-rendering: auto !important;
-  -webkit-font-smoothing: antialiased !important;
-  speak: none;
-}
-
-/* Ensure all Font Awesome icons maintain their font family */
-.fas, .fa, .far, .fab {
-  font-family: 'Font Awesome 6 Free' !important;
-  font-weight: 900 !important;
-}
-
-/* Specific fixes for Bengali language */
-.bn-lang .fas,
-.bn-lang .fa,
-.bn-lang .far,
-.bn-lang .fab,
-.bn-lang .icon-fixed {
-  font-family: 'Font Awesome 6 Free' !important;
-  font-weight: 900 !important;
-}
-
-/* ==================== */
-/* IMPROVED HERO SECTION */
+/* IMPROVED HERO SECTION - SIDE BY SIDE */
 /* ==================== */
 .hero-section {
   padding: 80px 0;
@@ -695,9 +652,61 @@ onUnmounted(() => {
   width: 100%;
 }
 
+.hero-row {
+  align-items: center;
+  min-height: 70vh;
+}
+
+.hero-content-col {
+  display: flex;
+  align-items: center;
+}
+
 .hero-content {
   max-width: 600px;
   width: 100%;
+  text-align: left;
+}
+
+.hero-image-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.hero-image-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+}
+
+.hero-main-image {
+  width: 100%;
+  max-height: 800px;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  transition: opacity 0.3s ease;
+  animation: float 3s ease-in-out infinite;
+}
+
+.hero-fallback-image {
+  width: 100%;
+  max-height: 500px;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .hero-title {
@@ -785,8 +794,8 @@ onUnmounted(() => {
 .stat-item {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
+  align-items: flex-start;
+  text-align: left;
   min-width: 120px;
 }
 
@@ -802,6 +811,133 @@ onUnmounted(() => {
   font-size: 0.9rem;
   color: var(--text-secondary);
   font-weight: 500;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+/* Responsive Design for Hero Section */
+@media (max-width: 992px) {
+  .hero-section {
+    padding: 60px 0;
+    min-height: auto;
+    text-align: center;
+  }
+  
+  .hero-row {
+    min-height: auto;
+  }
+  
+  .hero-content-col, 
+  .hero-image-col {
+    display: block;
+  }
+  
+  .hero-content {
+    margin: 0 auto 3rem;
+    text-align: center;
+  }
+  
+  .hero-actions {
+    justify-content: center;
+  }
+  
+  .hero-stats {
+    justify-content: center;
+  }
+  
+  .stat-item {
+    align-items: center;
+    text-align: center;
+  }
+  
+  .hero-image-wrapper {
+    margin: 0 auto;
+  }
+  
+  .hero-main-image {
+    max-height: 400px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2.2rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1.1rem;
+  }
+  
+  .hero-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .btn-invest,
+  .btn-accent {
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+  }
+  
+  .hero-stats {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .hero-main-image {
+    max-height: 350px;
+  }
+}
+
+@media (max-width: 576px) {
+  .hero-title {
+    font-size: 1.8rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+  
+  .hero-main-image {
+    max-height: 300px;
+  }
+}
+
+/* ==================== */
+/* ICON FIXES FOR LANGUAGE SWITCH */
+/* ==================== */
+.icon-fixed {
+  font-family: 'Font Awesome 6 Free' !important;
+  font-weight: 900 !important;
+  font-style: normal !important;
+  font-variant: normal !important;
+  text-rendering: auto !important;
+  -webkit-font-smoothing: antialiased !important;
+  speak: none;
+}
+
+/* Ensure all Font Awesome icons maintain their font family */
+.fas, .fa, .far, .fab {
+  font-family: 'Font Awesome 6 Free' !important;
+  font-weight: 900 !important;
+}
+
+/* Specific fixes for Bengali language */
+.bn-lang .fas,
+.bn-lang .fa,
+.bn-lang .far,
+.bn-lang .fab,
+.bn-lang .icon-fixed {
+  font-family: 'Font Awesome 6 Free' !important;
+  font-weight: 900 !important;
 }
 
 /* ==================== */
@@ -1333,7 +1469,6 @@ onUnmounted(() => {
   width: 100% !important;
 }
 
-
 .cta-section .col-12 {
   text-align: center !important;
   display: flex !important;
@@ -1476,6 +1611,11 @@ onUnmounted(() => {
     justify-content: center;
   }
   
+  .stat-item {
+    align-items: center;
+    text-align: center;
+  }
+  
   .section-title {
     font-size: 2rem;
   }
@@ -1594,6 +1734,10 @@ onUnmounted(() => {
   .service-features .badge {
     font-size: 0.7rem;
     padding: 0.4rem 0.8rem;
+  }
+  
+  .stat-number {
+    font-size: 2rem;
   }
 }
 
